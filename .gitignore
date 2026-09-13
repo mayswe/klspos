@@ -1,0 +1,39 @@
+# Local credentials and machine configuration
+.env
+.env.*
+!.env.example
+/app/config/config.php
+/app/config/database.php
+/app/config/google_local.php
+/update/config/config.php
+/update/config/database.php
+/.user.ini
+/.well-known/
+
+# Dependencies installed with package managers
+/vendor/
+/node_modules/
+
+# Runtime data and private files
+/uploads/
+/files/*
+!/files/.htaccess
+!/files/updates/
+/app/logs/*
+!/app/logs/index.html
+/app/cache/*
+!/app/cache/index.html
+/update/cache/*
+!/update/cache/index.html
+*.log
+*.sql.gz
+*.zip
+*.7z
+*.bak
+*.pem
+*.key
+Thumbs.db
+.DS_Store
+/.idea/
+/.vscode/
+/app/config/rest.php

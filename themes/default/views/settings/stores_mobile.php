@@ -1,0 +1,681 @@
+<?php (defined('BASEPATH')) OR exit('No direct script access allowed'); ?>
+
+<?php
+$is_app_mode =
+    !empty($is_app_mode) ||
+    $this->input->get('app') == 1 ||
+    $this->input->post('app') == 1 ||
+    $this->input->get('mobile') == 1 ||
+    $this->input->post('mobile') == 1;
+
+$app_language =
+    $this->input->get('app_lang', true) ?:
+    $this->input->post('app_lang', true);
+?>
+
+
+<style type="text/css">
+    .erp-page .erp-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 14px 16px;
+        border-bottom: 1px solid #edf1f5;
+        background: #fff;
+    }
+    .erp-page .erp-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .erp-page .erp-title-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eef6ff;
+        color: #2563eb;
+        font-size: 18px;
+    }
+    .erp-page .erp-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #273444;
+        line-height: 1.25;
+    }
+    .erp-page .erp-subtitle {
+        margin-top: 3px;
+        color: #7b8794;
+        font-size: 12px;
+    }
+    .erp-page .erp-body {
+        background: #f6f8fb;
+        padding: 15px;
+    }
+    .erp-page .erp-summary-card,
+    .erp-page .erp-table-card {
+        background: #fff;
+        border: 1px solid #edf1f5;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(36, 52, 71, .05);
+        margin-bottom: 15px;
+    }
+    .erp-page .erp-stat-grid {
+        display: flex;
+        flex-wrap: wrap;
+        margin-left: -7px;
+        margin-right: -7px;
+    }
+    .erp-page .erp-stat-item {
+        padding-left: 7px;
+        padding-right: 7px;
+        margin-bottom: 14px;
+    }
+    .erp-page .erp-stat-card {
+        padding: 14px 15px;
+        min-height: 86px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        overflow: hidden;
+        position: relative;
+    }
+    .erp-page .erp-stat-card:after {
+        content: '';
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(37, 99, 235, .09);
+        position: absolute;
+        right: -25px;
+        bottom: -28px;
+    }
+    .erp-page .erp-stat-label {
+        font-size: 12px;
+        color: #7b8794;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .erp-page .erp-stat-value {
+        margin-top: 6px;
+        font-size: 19px;
+        font-weight: 800;
+        color: #273444;
+    }
+    .erp-page .erp-stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #f2f6fb;
+        color: #2563eb;
+        font-size: 18px;
+        z-index: 1;
+    }
+    .erp-page .erp-table-card {
+        padding: 12px;
+    }
+    .erp-page .erp-table-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+    .erp-page .erp-table-title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 800;
+        color: #273444;
+    }
+    .erp-page #search_table {
+        border-radius: 20px;
+        border-color: #dfe6ee;
+        height: 36px;
+        min-width: 260px;
+        box-shadow: none;
+    }
+    .erp-page table.dataTable thead th {
+        background: #f1f5f9 !important;
+        color: #334155;
+        font-size: 12px;
+        text-transform: uppercase;
+        white-space: nowrap;
+        vertical-align: middle !important;
+        border-bottom: 1px solid #dfe6ee !important;
+    }
+    .erp-page table.dataTable tbody td {
+        vertical-align: middle !important;
+        color: #344054;
+        white-space: nowrap;
+    }
+    .erp-page table.dataTable tfoot th,
+    .erp-page table.dataTable tfoot td {
+        background: #fbfcfe !important;
+        vertical-align: middle !important;
+    }
+    .erp-page .text_filter {
+        width: 100% !important;
+        height: 30px;
+        border: 1px solid #dfe6ee;
+        border-radius: 5px;
+        padding: 4px 7px;
+        font-size: 12px;
+        font-weight: normal;
+        background: #fff;
+    }
+    .erp-page .erp-actions {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .erp-page .erp-actions .btn,
+    .erp-page .erp-actions a {
+        margin: 1px;
+        border-radius: 5px;
+    }
+    .erp-page .dt-buttons .btn,
+    .erp-page .dt-buttons .dt-button {
+        border-radius: 5px !important;
+        margin-right: 4px;
+        margin-bottom: 4px;
+    }
+    .erp-page .erp-dt-top {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        row-gap: 8px;
+    }
+    .erp-page .erp-dt-top > div {
+        margin-bottom: 6px;
+    }
+    .erp-page .dataTables_length {
+        margin-top: 2px;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: #64748b;
+    }
+    .erp-page .dataTables_length label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    .erp-page .dataTables_length select {
+        border-radius: 5px;
+        border: 1px solid #dfe6ee;
+        height: 31px;
+        padding: 3px 8px;
+        box-shadow: none;
+        margin: 0 4px;
+    }
+    .erp-page .dataTables_info {
+        color: #64748b;
+        padding-top: 12px;
+    }
+    .erp-page .pagination {
+        margin: 8px 0 0;
+    }
+    .erp-page .action-col {
+        min-width: 90px;
+    }
+    .erp-page .store-link {
+        font-weight: 700;
+        color: #273444;
+    }
+    .erp-page .empty-text {
+        color: #9aa5b1;
+    }
+    .erp-page .address-cell {
+        max-width: 260px;
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+    @media (max-width: 767px) {
+        .erp-page .erp-header,
+        .erp-page .erp-table-toolbar {
+            display: block;
+        }
+        .erp-page #search_table {
+            width: 100%;
+            min-width: 100%;
+            margin-top: 10px;
+        }
+        .erp-page .erp-dt-top {
+            display: block;
+        }
+        .erp-page .erp-dt-top > div {
+            text-align: left !important;
+            margin-bottom: 8px;
+        }
+    }
+</style>
+
+<?php if ($is_app_mode) { ?>
+<style>
+.main-header,
+.main-sidebar,
+.main-footer,
+.control-sidebar,
+.control-sidebar-bg,
+.content-header,
+.breadcrumb {
+    display: none !important;
+}
+
+html,
+body,
+.wrapper {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    background: #f4f7fb !important;
+    overflow-x: hidden !important;
+}
+
+.content-wrapper,
+.right-side,
+.sidebar-mini .content-wrapper,
+.sidebar-collapse .content-wrapper {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 100vh !important;
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+    background: #f4f7fb !important;
+}
+
+.content.erp-page {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    background: #f4f7fb !important;
+}
+
+.erp-page > .row {
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.erp-page > .row > .col-xs-12 {
+    width: 100% !important;
+    padding: 0 !important;
+    float: none !important;
+}
+
+.erp-page .box.box-primary {
+    width: 100% !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    border: 1px solid #e3e9ef !important;
+    border-top: 1px solid #e3e9ef !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+}
+
+.erp-page .erp-header {
+    display: block !important;
+    padding: 13px !important;
+}
+
+.erp-page .erp-title {
+    font-size: 17px !important;
+    line-height: 1.45 !important;
+}
+
+.erp-page .erp-subtitle {
+    font-size: 13px !important;
+}
+
+.erp-page .erp-body {
+    padding: 10px !important;
+}
+
+.erp-page .erp-stat-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin: 0 0 12px !important;
+}
+
+.erp-page .erp-stat-grid::before,
+.erp-page .erp-stat-grid::after {
+    display: none !important;
+    content: none !important;
+}
+
+.erp-page .erp-stat-grid > .erp-stat-item {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    float: none !important;
+}
+
+.erp-page .erp-stat-card {
+    width: 100% !important;
+    min-height: 86px !important;
+    margin: 0 !important;
+    padding: 12px !important;
+}
+
+.erp-page .erp-stat-label {
+    font-size: 13px !important;
+    text-transform: none !important;
+}
+
+.erp-page .erp-stat-value {
+    font-size: 18px !important;
+}
+
+.erp-page .erp-stat-icon {
+    width: 38px !important;
+    height: 38px !important;
+    flex: 0 0 38px !important;
+}
+
+.erp-page .erp-table-card {
+    padding: 10px !important;
+}
+
+.erp-page .erp-table-toolbar {
+    display: block !important;
+}
+
+.erp-page .erp-table-title {
+    margin-bottom: 9px !important;
+    font-size: 15px !important;
+}
+
+.erp-page #search_table {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+}
+
+.erp-page .erp-dt-top,
+.erp-page .dt-buttons,
+.erp-page .dataTables_length {
+    display: none !important;
+}
+
+.erp-page .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    border: 0 !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+}
+
+.erp-page #StData {
+    width: 100% !important;
+    min-width: 980px !important;
+}
+
+.erp-page #StData thead th,
+.erp-page #StData tbody td,
+.erp-page #StData tfoot th {
+    padding: 9px 7px !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+}
+
+.erp-page .text_filter {
+    height: 34px !important;
+    font-size: 12px !important;
+}
+
+.erp-page .address-cell {
+    max-width: 220px !important;
+}
+
+.erp-page .btn-group .dropdown-menu,
+.erp-page .erp-actions .dropdown-menu {
+    z-index: 999999 !important;
+}
+
+@media (max-width: 420px) {
+    .erp-page .erp-stat-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+</style>
+<?php } ?>
+
+
+<script type="text/javascript">
+    $(document).ready(function() {
+
+        function cleanText(x) {
+            if (x === null || typeof x === 'undefined' || $.trim(x) === '') {
+                return '<span class="empty-text">-</span>';
+            }
+            return x;
+        }
+
+        function addressText(x) {
+            if (x === null || typeof x === 'undefined' || $.trim(x) === '') {
+                return '<span class="empty-text">-</span>';
+            }
+            return '<span class="address-cell" title="' + $('<div>').text(x).html() + '">' + x + '</span>';
+        }
+
+        function updateSummaryCards(api) {
+            var records = api.rows({ search: 'applied' }).count();
+            var withCode = 0;
+            var withPhone = 0;
+            var withCity = 0;
+
+            api.rows({ search: 'applied' }).every(function() {
+                var row = this.data();
+                if (!row) return;
+
+                if (row.code && $.trim(row.code) !== '') {
+                    withCode++;
+                }
+                if (row.phone && $.trim(row.phone) !== '') {
+                    withPhone++;
+                }
+                if (row.city && $.trim(row.city) !== '') {
+                    withCity++;
+                }
+            });
+
+            $('#store_records').html(records);
+            $('#store_code').html(withCode);
+            $('#store_phone').html(withPhone);
+            $('#store_city').html(withCity);
+        }
+
+        var table = $('#StData').DataTable({
+            ajax: {
+                url: '<?= site_url('settings/get_stores'); ?>',
+                type: 'POST',
+                data: function(d) {
+                    d.<?= $this->security->get_csrf_token_name(); ?> = "<?= $this->security->get_csrf_hash(); ?>";
+                }
+            },
+            dom: "<'row erp-dt-top'<'col-sm-6'B><'col-sm-6 text-right'l>>rt<'row erp-dt-bottom'<'col-sm-6'i><'col-sm-6'p>>",
+            pageLength: 25,
+            order: [[1, 'asc']],
+            autoWidth: false,
+            buttons: [
+                { extend: 'copyHtml5', footer: false, exportOptions: { columns: [1, 2, 3, 4, 5, 6] } },
+                { extend: 'excelHtml5', footer: false, exportOptions: { columns: [1, 2, 3, 4, 5, 6] } },
+                { extend: 'csvHtml5', footer: false, exportOptions: { columns: [1, 2, 3, 4, 5, 6] } },
+                { extend: 'pdfHtml5', orientation: 'landscape', pageSize: 'A4', footer: false, exportOptions: { columns: [1, 2, 3, 4, 5, 6] } },
+                { extend: 'colvis', text: '<i class="fa fa-columns"></i> <?= lang('columns'); ?>' }
+            ],
+            columns: [
+                { data: 'id', visible: false },
+                {
+                    data: 'name',
+                    render: function(data, type, row) {
+                        if (type === 'display') {
+                            return '<span class="store-link">' + cleanText(data) + '</span>';
+                        }
+                        return data || '';
+                    }
+                },
+                { data: 'code', render: cleanText },
+                { data: 'phone', render: cleanText },
+                { data: 'email', render: cleanText },
+                { data: 'address1', render: addressText },
+                { data: 'city', render: cleanText },
+                {
+                    data: 'Actions',
+                    searchable: false,
+                    orderable: false,
+                    className: 'text-center action-col',
+                    render: function(data, type, row) {
+                        return '<div class="erp-actions">' + (data || '') + '</div>';
+                    }
+                }
+            ],
+            drawCallback: function(settings) {
+                updateSummaryCards(this.api());
+            }
+        });
+
+        $('#search_table').on('keyup change', function(e) {
+            var code = (e.keyCode ? e.keyCode : e.which);
+            if (((code == 13 && table.search() !== this.value) || (table.search() !== '' && this.value === ''))) {
+                table.search(this.value).draw();
+            }
+        });
+
+        table.columns().every(function() {
+            var self = this;
+            $('input', this.footer()).on('keyup change', function(e) {
+                var code = (e.keyCode ? e.keyCode : e.which);
+                if (((code == 13 && self.search() !== this.value) || (self.search() !== '' && this.value === ''))) {
+                    self.search(this.value).draw();
+                }
+            });
+        });
+    });
+</script>
+
+<section class="content erp-page">
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="box box-primary" style="border-radius:10px; border-top:0; overflow:hidden;">
+                <div class="erp-header">
+                    <div class="erp-title-wrap">
+                        <div class="erp-title-icon"><i class="fa fa-building"></i></div>
+                        <div>
+                            <h4 class="erp-title"><?= $page_title; ?></h4>
+                            <div class="erp-subtitle"><?= lang('list'); ?></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="erp-body">
+                    <div class="erp-stat-grid">
+                        <div class="col-md-3 col-sm-6 erp-stat-item">
+                            <div class="erp-summary-card erp-stat-card">
+                                <div>
+                                    <div class="erp-stat-label"><?= lang('records'); ?></div>
+                                    <div class="erp-stat-value" id="store_records">0</div>
+                                </div>
+                                <div class="erp-stat-icon"><i class="fa fa-list"></i></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 erp-stat-item">
+                            <div class="erp-summary-card erp-stat-card">
+                                <div>
+                                    <div class="erp-stat-label"><?= lang('code'); ?></div>
+                                    <div class="erp-stat-value" id="store_code">0</div>
+                                </div>
+                                <div class="erp-stat-icon"><i class="fa fa-barcode"></i></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 erp-stat-item">
+                            <div class="erp-summary-card erp-stat-card">
+                                <div>
+                                    <div class="erp-stat-label"><?= lang('phone'); ?></div>
+                                    <div class="erp-stat-value" id="store_phone">0</div>
+                                </div>
+                                <div class="erp-stat-icon"><i class="fa fa-phone"></i></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 erp-stat-item">
+                            <div class="erp-summary-card erp-stat-card">
+                                <div>
+                                    <div class="erp-stat-label"><?= lang('city'); ?></div>
+                                    <div class="erp-stat-value" id="store_city">0</div>
+                                </div>
+                                <div class="erp-stat-icon"><i class="fa fa-map-marker"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="erp-table-card">
+                        <div class="erp-table-toolbar">
+                            <h5 class="erp-table-title"><i class="fa fa-table"></i> <?= $page_title; ?> <?= lang('list'); ?></h5>
+                            <input type="text" class="form-control" name="search_table" id="search_table" placeholder="<?= lang('type_hit_enter'); ?>">
+                        </div>
+
+                        <div class="table-responsive">
+                            <table id="StData" class="table table-bordered table-hover table-striped" style="width:100%; margin-bottom:5px;">
+                                <thead>
+                                    <tr>
+                                        <th style="max-width:30px;"><?= lang('id'); ?></th>
+                                        <th><?= lang('name'); ?></th>
+                                        <th><?= lang('code'); ?></th>
+                                        <th><?= lang('phone'); ?></th>
+                                        <th><?= lang('email'); ?></th>
+                                        <th><?= lang('address1'); ?></th>
+                                        <th><?= lang('city'); ?></th>
+                                        <th style="width:90px; text-align:center;"><?= lang('actions'); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="8" class="dataTables_empty"><?= lang('loading_data_from_server'); ?></td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th><input type="text" class="text_filter" placeholder="[<?= lang('id'); ?>]"></th>
+                                        <th><input type="text" class="text_filter" placeholder="[<?= lang('name'); ?>]"></th>
+                                        <th><input type="text" class="text_filter" placeholder="[<?= lang('code'); ?>]"></th>
+                                        <th><input type="text" class="text_filter" placeholder="[<?= lang('phone'); ?>]"></th>
+                                        <th><input type="text" class="text_filter" placeholder="[<?= lang('email'); ?>]"></th>
+                                        <th><input type="text" class="text_filter" placeholder="[<?= lang('address1'); ?>]"></th>
+                                        <th><input type="text" class="text_filter" placeholder="[<?= lang('city'); ?>]"></th>
+                                        <th style="text-align:center;"><?= lang('actions'); ?></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

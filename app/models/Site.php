@@ -1,0 +1,856 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Site extends CI_Model
+{
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    public function getAllCategories()
+    {
+        $this->db->order_by('code');
+        $q = $this->db->get('categories');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getAllCustomers()
+    {
+        $q = $this->db->get('customers');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getAllCustomergroup()
+    {
+        $this->db->order_by('code');
+        $q = $this->db->get('customergroup');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+    
+
+    public function getAllPrinters()
+    {
+        $this->db->order_by('title');
+        $q = $this->db->get('printers');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getAllStores()
+    {
+        $q = $this->db->get('stores');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getAllSuppliers()
+    {
+        $q = $this->db->get('suppliers');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getAllExchangeRates()
+    {
+        $q = $this->db->get('currencies');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getAllUsers()
+    {
+        $this->db->select("{$this->db->dbprefix('users')}.id as id, first_name, last_name, {$this->db->dbprefix('users')}.email, company, {$this->db->dbprefix('groups')}.name as group, active, {$this->db->dbprefix('stores')}.name as store")
+            ->join('groups', 'users.group_id=groups.id', 'left')
+            ->join('stores', 'users.store_id=stores.id', 'left')
+            ->group_by('users.id');
+        $q = $this->db->get('users');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getCategoryByCode($code)
+    {
+        $q = $this->db->get_where('categories', ['code' => $code], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+    public function getCategoryByID($id)
+    {
+        $q = $this->db->get_where('categories', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+    public function getCustomergroupByID($id)
+    {
+        $q = $this->db->get_where('customergroup', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+    
+
+    public function getCustomerByID($id)
+    {
+        $q = $this->db->get_where('customers', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+    
+    public function getSupplierByID($id)
+    {
+        $q = $this->db->get_where('suppliers', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+    
+    
+
+    public function getGiftCard($no)
+    {
+        $q = $this->db->get_where('gift_cards', ['card_no' => $no], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+    public function getGiftCardByID($id)
+    {
+        $q = $this->db->get_where('gift_cards', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+    public function getPrinterByID($id)
+    {
+        $q = $this->db->get_where('printers', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+
+public function getProductByID($id, $store_id = null)
+{
+    log_message('debug', '🆔 getProductByID() called | Product ID: ' . $id . ' | Store ID: ' . ($store_id ?? 'ALL'));
+
+    // Get product info
+    $q = $this->db->get_where('products', ['id' => $id], 1);
+    log_message('debug', '🔎 Product query executed. Rows found: ' . $q->num_rows());
+
+    if (!$q->num_rows()) {
+        log_message('error', '❌ No product found with ID: ' . $id);
+        return false;
+    }
+
+    $product = $q->row();
+    log_message('debug', '📦 Product details: ' . print_r($product, true));
+
+    // Calculate total qty_base and qty_secondary from stock batches
+    $this->db->select_sum('qty_base', 'qty_base_total')
+             ->select_sum('qty_secondary', 'qty_secondary_total')
+             ->where('product_id', $id);
+
+    if ($store_id) {
+        $this->db->where('store_id', $store_id);
+    }
+
+    $batch = $this->db->get('tec_stock_batches')->row();
+
+    log_message('debug', '📊 Stock batch totals: ' . print_r($batch, true));
+
+    $product->qty_base = $batch->qty_base_total ?? 0;
+    $product->qty_secondary = $batch->qty_secondary_total ?? 0;
+
+    log_message('debug', '✅ Final Product Object (with stock): ' . print_r($product, true));
+
+    return $product;
+}
+
+
+public function getQtyAlerts()
+{
+    if (!$this->session->userdata('store_id')) {
+        return 0;
+    }
+
+    $store_id = $this->session->userdata('store_id');
+
+    $this->db->select('products.id, products.alert_quantity, COALESCE(SUM(sb.qty_base), 0) as total_qty', false)
+        ->from('products')
+        ->join("stock_batches sb", "products.id = sb.product_id AND sb.store_id = {$store_id}", "left")
+        ->where('products.alert_quantity >', 0)
+        ->group_by('products.id, products.alert_quantity')
+        ->having('total_qty < products.alert_quantity');
+
+    $query = $this->db->get();
+    return $query->num_rows();
+}
+
+public function getPreorderAlerts()
+{
+    if (!$this->session->userdata('store_id')) {
+        return 0;
+    }
+
+    $store_id = $this->session->userdata('store_id');
+
+    $this->db->select('id')
+        ->from('sales') // or 'tec_sales' if not aliased
+        ->where('store_id', $store_id)
+        ->where('is_preorder', 1)
+        ->where('preorder_status', 'pending'); // only pending preorders
+
+    $query = $this->db->get();
+    return $query->num_rows();
+}
+
+
+public function getDueAlerts()
+{
+    if (!$this->session->userdata('store_id')) {
+        return 0;
+    }
+
+    $store_id = $this->session->userdata('store_id');
+
+    $this->db->select('id')
+        ->from('sales') // or 'tec_sales'
+        ->where('store_id', $store_id)
+        ->where('status', 'due'); // only unpaid/due sales
+
+    $query = $this->db->get();
+    return $query->num_rows();
+}
+
+
+
+    public function getSettings()
+    {
+        $q = $this->db->get('settings');
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+    public function getStoreByID($id = null)
+    {
+        if (!$id) {
+            return false;
+        }
+        $q = $this->db->get_where('stores', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+    public function getUpcomingEvents()
+    {
+        $dt = date('Y-m-d');
+        $this->db->where('date >=', $dt)->order_by('date')->limit(5);
+        if ($this->Settings->restrict_calendar) {
+            $q = $this->db->get_where('calendar', ['user_id' => $this->session->userdata('iser_id')]);
+        } else {
+            $q = $this->db->get('calendar');
+        }
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getUser($id = null)
+    {
+        if (!$id) {
+            $id = $this->session->userdata('user_id');
+        }
+        $q = $this->db->get_where('users', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+    public function getUserGroup($user_id = null)
+    {
+        if ($group_id = $this->getUserGroupID($user_id)) {
+            $q = $this->db->get_where('groups', ['id' => $group_id], 1);
+            if ($q->num_rows() > 0) {
+                return $q->row();
+            }
+        }
+        return false;
+    }
+
+    public function getUserGroupID($user_id = null)
+    {
+        if ($user = $this->getUser($user_id)) {
+            return $user->group_id;
+        }
+        return false;
+    }
+
+    public function getUsers()
+    {
+        $q = $this->db->get('users');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getUserSuspenedSales()
+    {
+        $user_id = $this->session->userdata('user_id');
+        $this->db->select('id, date, customer_name, hold_ref')
+        ->order_by('id desc');
+        //->limit(10);
+        $this->db->where('store_id', $this->session->userdata('store_id'));
+        $q = $this->db->get_where('suspended_sales', ['created_by' => $user_id]);
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function registerData($user_id)
+    {
+        if (!$user_id) {
+            $user_id = $this->session->userdata('user_id');
+        }
+        $q = $this->db->get_where('registers', ['user_id' => $user_id, 'status' => 'open'], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+    
+    public function getExchangeRate($currency_code)
+    {
+        $this->db->where('currency_code', $currency_code);
+        $this->db->where('status', 1); // Only active rates
+        $q = $this->db->get('tec_currencies', 1);
+        if ($q->num_rows() > 0) {
+            return $q->row()->exchange_rate;
+        }
+        return false;
+    }
+
+
+    public function getAllExpenseType()
+    {
+        $this->db->order_by('code');
+        $q = $this->db->get('expensetype');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+    
+    public function getAllCurrencies()
+    {
+        $this->db->order_by('code');
+        $q = $this->db->get('currency');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getExpenseTypeByID($id)
+    {
+        $q = $this->db->get_where('expensetype', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+    public function getAllUnits()
+    {
+        $this->db->order_by('id');
+        $q = $this->db->get('product_units');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+    public function getUnitByID($id)
+    {
+        $q = $this->db->get_where('product_units', ['id' => $id], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+    public function getProductConversions($product_id)
+    {
+        $this->db->select('c.*, u.name as unit_name, u.code as unit_code')
+                ->from('product_unit_conversions c')
+                ->join('product_units u', 'c.unit_id = u.id', 'left')
+                ->where('c.product_id', $product_id)
+                ->order_by('c.id');
+        return $this->db->get()->result();
+    }
+    public function getProductUnits() 
+    {
+        $products = $this->db->get('products')->result();
+        $units = [];
+        foreach ($products as $p) {
+            $convs = $this->getProductConversions($p->id);
+            foreach ($convs as $c) {
+            $units[$p->id][$c->unit_id] = $c->unit_code;
+            }
+        }
+        return $units;
+    }
+    public function getAllProducts()
+    {
+        $q = $this->db->get('products');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+    
+    public function getProductStock($product_id, $store_id = null)
+{
+    if (!$store_id) {
+        $store_id = $this->session->userdata('store_id');
+    }
+
+    $this->db->select("IFNULL(SUM(qty_base), 0) as total_stock", false);
+    $this->db->where("product_id", $product_id);
+    $this->db->where("store_id", $store_id);
+    $q = $this->db->get("tec_stock_batches");
+
+    if ($q->num_rows() > 0) {
+        return (float) $q->row()->total_stock;
+    }
+
+    return 0;
+}
+
+
+    public function getAllExpenseCategories()
+    {
+        $q = $this->db->get('expensetype');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+    
+
+    public function getProductUnitsByID($product_id) 
+    {
+        $products = $this->db->get('products')->result();
+        $units = [];
+        foreach ($products as $p) {
+            $convs = $this->getProductConversions($p->id);
+            foreach ($convs as $c) {
+            $units[$p->id][$c->unit_id] = $c->unit_name;
+            }
+        }
+        return $units;
+    }
+
+    public function get_units_by_product($product_id)
+{
+    $this->db->select('product_unit_conversions.*, product_units.name as unit_name');
+    $this->db->from('product_unit_conversions');
+    $this->db->join('product_units', 'product_units.id = product_unit_conversions.unit_id', 'left');
+    $this->db->where('product_unit_conversions.product_id', $product_id);
+    $query = $this->db->get();
+    return $query->result_array();
+}
+
+public function getReference($type = null)
+{
+    if ($type == 'ex') {
+        // Example: Generate 'EX-20250707-0001'
+        $this->db->select_max('id');
+        $q = $this->db->get('expenses');
+        $last_id = $q->row()->id ?? 0;
+        $next_id = $last_id + 1;
+        return 'EX-' . date('Ymd') . '-' . str_pad($next_id, 4, '0', STR_PAD_LEFT);
+    }
+    return null;
+}
+
+ public function getAllWarehouses()
+    {
+        $q = $this->db->get('warehouses');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+    
+    public function deductStock($product_id, $warehouse_id, $qty)
+{
+    $this->db->set('qty', 'qty - ' . (float)$qty, FALSE)
+             ->where('product_id', $product_id)
+             ->where('warehouse_id', $warehouse_id)
+             ->update('product_batches');
+}
+
+public function addStock($product_id, $warehouse_id, $qty)
+{
+    // check if stock exists
+    $q = $this->db->get_where('product_batches', ['product_id' => $product_id, 'warehouse_id' => $warehouse_id]);
+
+    if ($q->num_rows()) {
+        $this->db->set('qty', 'qty + ' . (float)$qty, FALSE)
+                 ->where('product_id', $product_id)
+                 ->where('warehouse_id', $warehouse_id)
+                 ->update('product_batches');
+    } else {
+        $this->db->insert('product_batches', [
+            'product_id'  => $product_id,
+            'warehouse_id'=> $warehouse_id,
+            'qty'    => $qty
+        ]);
+    }
+}
+public function getUnitsByProduct($product_id)
+{
+    $this->db->select('product_unit_conversions.id, product_units.name')
+             ->from('product_unit_conversions')
+             ->join('product_units', 'product_units.id = product_unit_conversions.unit_id')
+             ->where('product_unit_conversions.product_id', $product_id);
+    $q = $this->db->get();
+    return $q->result();
+}
+public function getWarehouseNameByID($id)
+{
+    $wh = $this->db->get_where('warehouses', ['id' => $id])->row();
+    return $wh ? $wh->name : '-';
+}
+public function getUserNameByID($id)
+{
+    $user = $this->db->get_where('users', ['id' => $id])->row();
+    return $user ? $user->username : '-';
+}
+public function getProductNameByID($id)
+{
+    $product = $this->db->get_where('products', ['id' => $id])->row();
+    return $product ? $product->name : '-';
+}
+public function getUnitNameByID($id)
+{
+    $unit = $this->db->get_where('units', ['id' => $id])->row();
+    return $unit ? $unit->name : '-';
+}
+
+public function getAllContainerBoxes()
+    {
+        $q = $this->db->get('container_boxes');
+        if ($q->num_rows() > 0) {
+            foreach (($q->result()) as $row) {
+                $data[] = $row;
+            }
+            return $data;
+        }
+        return false;
+    }
+
+    public function getProductUnitPrices($product_id)
+{
+    $query = $this->db->get_where('product_unit_prices', ['product_id' => $product_id]);
+    $prices = [];
+    foreach ($query->result() as $row) {
+        $prices[$row->unit_id] = $row->price;
+    }
+    return $prices;
+}
+
+public function getProductUnitConversions($product_id)
+{
+    $query = $this->db->get_where(
+        'product_unit_conversions',
+        [
+            'product_id' => (int) $product_id
+        ]
+    );
+
+    $conversions = [];
+
+    foreach ($query->result() as $row) {
+
+        $value = is_numeric($row->operation_value)
+            ? (float) $row->operation_value
+            : 1;
+
+        $operator = !empty($row->operator)
+            ? $row->operator
+            : '*';
+
+        $conversions[$row->unit_id] = [
+
+            'unit_id' =>
+                (int) $row->unit_id,
+
+            'operator' =>
+                $operator,
+
+            'operation_value' =>
+                $value,
+
+            // old JS compatibility
+            'value' =>
+                $value
+        ];
+    }
+
+    return $conversions;
+}
+
+public function getUnitsByProductID($product_id)
+{
+    $this->db->select('product_units.id as id, product_units.name as name');
+    $this->db->from('product_unit_conversions');
+    $this->db->join('product_units', 'product_units.id = product_unit_conversions.unit_id', 'left');
+    $this->db->where('product_unit_conversions.product_id', $product_id);
+    $q = $this->db->get();
+    $units = [];
+    foreach ($q->result() as $unit) {
+        $units[$unit->id] = $unit->name;
+    }
+    return $units;
+}
+
+public function getUnitOperatorByID($id, $product_id)
+{
+    $q = $this->db->get_where('product_unit_conversions', ['unit_id' => $id, 'product_id' => $product_id], 1);
+    if ($q->num_rows() > 0) {
+        return $q->row();
+    }
+    return false;
+}
+
+public function getUnitConversion($product_id, $unit_id)
+{
+    return $this->db->get_where('product_unit_conversions', [
+        'product_id' => $product_id,
+        'unit_id' => $unit_id
+    ])->row();
+}
+
+ public function getUserByEmail($email)
+    {
+        $q = $this->db->get_where('users', ['email' => $email], 1);
+        if ($q->num_rows() > 0) {
+            return $q->row();
+        }
+        return false;
+    }
+
+public function get_by_type($type)
+{
+    // Sanitize type to avoid SQL injection
+    $allowed_types = ['warehouse', 'shop'];
+    if (!in_array($type, $allowed_types)) {
+        return [];
+    }
+
+    $this->db->select('id, name, address');
+    $this->db->from($type . 's'); // e.g., warehouses or shops
+    $this->db->order_by('name', 'ASC');
+
+    $query = $this->db->get();
+    return $query->result();
+}
+
+public function convertToBaseQty($product_id, $qty, $unit_id)
+{
+    // get product info
+    $this->db->select('id, base_unit_id');
+    $this->db->where('id', $product_id);
+    $q = $this->db->get('tec_products');
+    if ($q->num_rows() == 0) {
+        return $qty; // fallback
+    }
+    $product = $q->row();
+
+    // if selected unit is base unit → no conversion
+    if ($unit_id == $product->base_unit_id) {
+        return $qty;
+    }
+
+    // lookup conversion factor in tec_product_unit_conversions
+    $this->db->where('product_id', $product_id);
+    $this->db->where('unit_id', $unit_id);
+    $conv = $this->db->get('tec_product_unit_conversions')->row();
+
+    if ($conv) {
+        if ($conv->operator == '*') {
+            return $qty * (float)$conv->operation_value;
+        } elseif ($conv->operator == '/') {
+            return $qty / (float)$conv->operation_value;
+        }
+    }
+
+    // fallback if no conversion found
+    return $qty;
+}
+
+public function getProductBatches($product_id, $store_id = null)
+{
+    $this->db->select('id, product_id, store_id, container_id, batch_no, expiry_date, qty_base, qty_primary, qty_secondary, cost_per_base, primary_unit_id, secondary_unit_id, created_at, updated_at')
+             ->from('tec_stock_batches')
+             ->where('product_id', $product_id);
+
+    if ($store_id) {
+        $this->db->where('store_id', $store_id);
+    }
+
+    $this->db->order_by('expiry_date', 'ASC'); // FIFO
+
+    $q = $this->db->get();
+    if ($q->num_rows() > 0) {
+        return $q->result(); // array of objects with scalar fields
+    }
+    return [];
+}
+
+public function getBaseUnits()
+{
+    $products = $this->db
+        ->select('p.id as product_id, u.id as unit_id, u.name as unit_name')
+        ->from('tec_products p')
+        ->join('tec_product_units u', 'u.id = p.base_unit_id', 'left')
+        ->get();
+
+    $base_units = [];
+    foreach ($products->result() as $row) {
+        $base_units[$row->product_id] = [
+            'unit_id'   => $row->unit_id,
+            'unit_name' => $row->unit_name,
+        ];
+    }
+
+    return $base_units;
+}
+
+public function updateSalePaymentStatus($sale_id)
+{
+    $sale = $this->db->get_where('sales', ['id' => $sale_id])->row();
+    if (!$sale) return false;
+
+    // Calculate total paid
+    $this->db->select_sum('amount');
+    $this->db->where('sale_id', $sale_id);
+    $paid_result = $this->db->get('payments')->row();
+    $paid = $paid_result ? (float)$paid_result->amount : 0;
+
+    // Determine new status
+    if ($paid >= $sale->grand_total) {
+        $status = 'paid';
+    } elseif ($paid > 0 && $paid < $sale->grand_total) {
+        $status = 'partial';
+    } else {
+        $status = 'due';
+    }
+
+    // Update the sales record
+    $this->db->update('sales', [
+        'paid'     => $paid,
+        'status'   => $status
+    ], ['id' => $sale_id]);
+
+    return true;
+}
+
+
+
+
+
+}

@@ -1,0 +1,21 @@
+{
+	"name": "kls/pos",
+	"version": "4.1.1",
+	"description": "KLS POS",
+	"type": "project",
+	"authors": [
+		{
+			"name": "May Htike Swe",
+			"email": "swe.mayhtike@gmail.com"
+		}
+	],
+	"require": {
+		"php": "^7.1.3|^8.0",
+		"mike42/escpos-php": "^2.0",
+		"stripe/stripe-php": "^6.6",
+		"phpmailer/phpmailer": "^6.1",
+		"league/oauth2-google": "^3.0",
+		"laminas/laminas-barcode": "^2.9",
+		"google/apiclient": "^2.12"
+	}
+}

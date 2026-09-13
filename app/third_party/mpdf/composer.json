@@ -1,0 +1,8 @@
+{
+    "name": "kls/mpdf-runtime",
+    "description": "Isolated mPDF runtime for KLSPOS",
+    "type": "project",
+    "require": {
+        "mpdf/mpdf": "^8.1.3"
+    }
+}
