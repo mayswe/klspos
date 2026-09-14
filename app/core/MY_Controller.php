@@ -67,6 +67,17 @@ class MY_Controller extends CI_Controller
         $this->data['v']          = $this->v;
     }
 
+    protected function mobilePageUrl($path)
+    {
+        $url = site_url($path);
+        if ($this->input->get('app') == 1 || $this->input->post('app') == 1
+            || $this->input->get('mobile') == 1 || $this->input->post('mobile') == 1) {
+            $url .= '?' . http_build_query(['app'=>1, 'app_lang'=>
+                $this->input->post('app_lang',true) ?: $this->input->get('app_lang',true) ?: $this->Settings->selected_language]);
+        }
+        return $url;
+    }
+
     public function page_construct($page, $data = [], $meta = [])
     {
         if (empty($meta)) {
@@ -93,7 +104,35 @@ class MY_Controller extends CI_Controller
         $this->session->unset_userdata('message');
         $this->session->unset_userdata('warning');
         $this->load->view($this->theme . 'header', $meta);
+        $mobile_shared_pages = [
+            'purchases/expenses', 'purchases/edit_expense', 'purchases/add_expensetype', 'purchases/edit_expensetype',
+            'customers/add', 'customers/edit', 'customers/customergroupadd',
+            'suppliers/add', 'suppliers/edit', 'categories/add', 'categories/edit',
+            'stocktransfers/add', 'stocktransfers/edit', 'openingstock/edit', 'products/adjustments_add',
+            'warehouses/index', 'warehouses/add', 'warehouses/edit',
+            'currencies/index', 'currencies/add', 'currencies/edit',
+            'container_boxes/index', 'container_boxes/add', 'container_boxes/edit',
+            'shippings/index', 'shippings/add', 'shippings/edit',
+            'gift_cards/index', 'gift_cards/add', 'gift_cards/edit', 'settings/index',
+            'customers/customergroup', 'categories/import', 'depreciation/create',
+            'products/add_unit', 'products/edit_unit', 'products/import', 'products/selling_prices', 'products/unit_conversions',
+            'suppliers/advances', 'suppliers/add_advance', 'suppliers/edit_advance',
+            'suppliers/opening', 'suppliers/add_opening', 'suppliers/edit_opening',
+            'settings/add_store', 'settings/edit_store', 'settings/printers', 'settings/add_printer', 'settings/edit_printer',
+            'reports/container_box', 'reports/customer_order_report', 'reports/customers',
+            'reports/daily', 'reports/dailysales', 'reports/dailyspurchases', 'reports/investment',
+            'reports/monthly', 'reports/payments', 'reports/product_summary', 'reports/products',
+            'reports/profit_report', 'reports/profitloss', 'reports/purchasesupplier', 'reports/registers',
+            'reports/stocks', 'reports/supplieradvances', 'reports/top', 'reports/warehouse_stock', 'sales/opened'
+        ];
+        $use_mobile_shared = !empty($meta['is_app_mode']) && in_array($page, $mobile_shared_pages, true);
+        if ($use_mobile_shared) {
+            $this->load->view($this->theme . 'shared/mobile_page_start', array_merge($data, ['mobile_page'=>$page]));
+        }
         $this->load->view($this->theme . $page, $data);
+        if ($use_mobile_shared) {
+            $this->load->view($this->theme . 'shared/mobile_page_end');
+        }
         $this->load->view($this->theme . 'footer');
     }
     

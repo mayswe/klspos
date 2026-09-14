@@ -615,108 +615,29 @@ class Purchases extends MY_Controller
 
     if ($this->form_validation->run() == true) {
 
-        $exchange_rate = $this->input->post('exchange_rate');
-        $i = isset($_POST['product_id']) ? sizeof($_POST['product_id']) : 0;
-        $total = 0;
         $products = [];
-
-        // 1️⃣ Remove old purchase items + batches
-        $this->db->delete('product_batches', ['purchase_id' => $id]);
-        $this->db->delete('purchase_items', ['purchase_id' => $id]);
-
-        // 2️⃣ Insert new purchase items and batches
-        for ($r = 0; $r < $i; $r++) {
-            $item_id         = $_POST['product_id'][$r];
-            $primary_qty     = $_POST['primary_qty'][$r];
-            $primary_unit_id = $_POST['primary_unit'][$r];
-            $secondary_qty   = $_POST['secondary_qty'][$r];
-            $secondary_unit_id = $_POST['secondary_unit'][$r];
-            $item_cost       = $_POST['cost'][$r];
-            $tran_cost       = $_POST['transportation'][$r];
-
-            if ($item_id && $primary_qty && $item_cost) {
-                $product = $this->purchases_model->getProductByID($item_id);
-                if (!$product) {
-                    $this->session->set_flashdata('error', $this->lang->line('product_not_found') . ' ( ' . $item_id . ' ).');
-                    redirect('purchases/edit/' . $id);
-                }
-
-                // ✅ Convert primary qty to base qty
-                $primary_unit   = $this->site->getUnitOperatorByID($primary_unit_id, $item_id);
-                $converted_primary = $primary_qty * (($primary_unit && $primary_unit->operation_value) ? $primary_unit->operation_value : 1);
-
-                // ✅ Convert secondary qty to base qty (if exists)
-                $converted_secondary = 0;
-                if (!empty($secondary_qty) && !empty($secondary_unit_id)) {
-                    $secondary_unit = $this->site->getUnitOperatorByID($secondary_unit_id, $item_id);
-                    $converted_secondary = $secondary_qty * (($secondary_unit && $secondary_unit->operation_value) ? $secondary_unit->operation_value : 1);
-                }
-
-                $final_qty = $converted_primary + $converted_secondary;
-
-                if (!empty($tran_cost) && $final_qty > 0) {
-                    $delivery_per_unit = $tran_cost / $final_qty;
-                } else {
-                    $delivery_per_unit = 0;
-                }   
-
-                // Save to purchase_items
-                $products[] = [
-                    'purchase_id'      => $id,
-                    'product_id'       => $item_id,
-                    'cost'             => $item_cost,
-                    'delivery'         => $delivery_per_unit ?? 0,
-                    'quantity'         => $final_qty,
-                    'primary_qty'      => $primary_qty,
-                    'primary_unit_id'  => $primary_unit_id,
-                    'secondary_qty'    => $secondary_qty,
-                    'secondary_unit_id'=> $secondary_unit_id,
-                    'subtotal'         => ($item_cost * $primary_qty) + ($item_cost * $secondary_qty),
-                ];
-
-                // Save to batches
-                $batch_data = [
-                    'product_id'    => $item_id,
-                    'qty'           => $final_qty,
-                    'unit_id'       => $primary_unit_id, // keep primary unit as base
-                    'cost_price'    => $item_cost,
-                    'cost_myr'      => ($item_cost / $exchange_rate),
-                    'purchase_date' => $this->input->post('date'),
-                    'store_id'      => $this->input->post('store'),
-                    'purchase_id'   => $id
-                ];
-                $this->db->insert('product_batches', $batch_data);
-
-                $total += ($item_cost * $primary_qty) + ($item_cost * $secondary_qty);
-            }
+        $ids = (array)$this->input->post('product_id');
+        foreach ($ids as $r => $product_id) {
+            $products[] = [
+                'product_id'=>$product_id,
+                'primary_qty'=>$_POST['primary_qty'][$r] ?? null,
+                'primary_unit'=>$_POST['primary_unit'][$r] ?? null,
+                'secondary_qty'=>($_POST['secondary_qty'][$r] ?? '') === '' ? 0 : $_POST['secondary_qty'][$r],
+                'secondary_unit'=>$_POST['secondary_unit'][$r] ?? null,
+                'net_unit_cost'=>$_POST['cost'][$r] ?? null,
+            ];
         }
-
-        if (empty($products)) {
-            $this->form_validation->set_rules('product', lang('order_items'), 'required');
-        }
-
-        // 3️⃣ Update purchase header
-        $paid = $this->input->post('advance_deducted') ?? 0;
-        $status = $paid <= 0 ? 'due' : ($total <= $paid ? 'paid' : 'partial');
-        
         $data = [
-            'date'             => $this->input->post('date'),
-            'reference'        => $this->input->post('reference'),
-            'note'             => $this->input->post('note', true),
-            'supplier_id'      => $this->input->post('supplier'),
-            'store_id'         => $this->input->post('store'),
-            'container_box'    => $this->input->post('container_box'),
-            'exchange_rate'    => $exchange_rate,
-            'received'         => $this->input->post('received'),
-            'total'            => $total,
-            'advance_deducted' => $this->input->post('advance_deducted') ?? 0,
-            'delivery'         => $this->input->post('delivery') ?? 0,
-            'paid'             => $this->input->post('advance_deducted') ?? 0,
-            'status'           => $status,
+            'date'=>$this->input->post('date'), 'reference'=>$this->input->post('reference'),
+            'note'=>$this->input->post('note',true), 'supplier_id'=>$this->input->post('supplier'),
+            'store_id'=>$this->input->post('store'),
+            'received'=>$this->input->post('received'),
+            'advance_deducted'=>$this->input->post('advance_deducted') ?? 0,
         ];
+        if ($this->input->post('delivery') !== null) { $data['delivery'] = $this->input->post('delivery'); }
 
         // 4️⃣ Handle file upload
-        if ($_FILES['userfile']['size'] > 0) {
+        if (!empty($_FILES['userfile']['size'])) {
             $this->load->library('upload');
             $config['upload_path']   = 'files/';
             $config['allowed_types'] = $this->allowed_types;
@@ -739,8 +660,11 @@ class Purchases extends MY_Controller
     if ($this->form_validation->run() == true && $this->purchases_model->updatePurchase($id, $data, $products)) {
         $this->session->set_userdata('remove_spo', 1);
         $this->session->set_flashdata('message', lang('purchase_updated'));
-        redirect('purchases');
+        redirect($this->receiveReturnUrl('purchases'));
     } else {
+        if (!empty($this->purchases_model->purchase_edit_error)) {
+            $this->session->set_flashdata('error', $this->purchases_model->purchase_edit_error);
+        }
         
         // Load purchase + items
         $this->data['purchase'] = $this->purchases_model->getPurchaseByID($id);
@@ -769,10 +693,10 @@ class Purchases extends MY_Controller
             $row->secondary_qty  = $item->secondary_qty ?? 0;
             $row->secondary_unit = $item->secondary_unit ?? 0;
         
-            $ri = $this->Settings->item_addition ? $row->id : $c;
+            $ri = $c; // Preserve separate purchase lines for the same product.
             $pr[$ri] = [
                 'id'      => $ri,
-                'item_id' => $row->id,
+                'item_id' => $ri,
                 'label'   => $row->name . ' (' . $row->code . ')',
                 'row'     => $row
             ];
@@ -781,7 +705,17 @@ class Purchases extends MY_Controller
         
         $product_units = [];
         foreach ($inv_items as $item) {
-            $product_units[$item->product_id] = $this->site->getUnitsByProductId($item->product_id);
+            if (!isset($product_units[$item->product_id])) {
+                $product_units[$item->product_id] = (array)$this->site->getUnitsByProductId($item->product_id);
+            }
+            // Conversion lists may omit the independent secondary counting unit.
+            // Always include both units actually stored on every purchase line.
+            $saved_units = $this->db->where_in('id', array_filter([
+                (int)$item->primary_unit, (int)$item->secondary_unit
+            ]))->get('product_units')->result();
+            foreach ($saved_units as $unit) {
+                $product_units[$item->product_id][$unit->id] = $unit->name;
+            }
         }
         
         $this->data['product_units']  = $product_units;
@@ -839,7 +773,7 @@ class Purchases extends MY_Controller
                 
             ];
 
-            if ($_FILES['userfile']['size'] > 0) {
+            if (!empty($_FILES['userfile']['size'])) {
                 $this->load->library('upload');
                 $config['upload_path']   = 'uploads/';
                 $config['allowed_types'] = $this->allowed_types;
@@ -864,7 +798,7 @@ class Purchases extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->purchases_model->addExpense($data)) {
             $this->session->set_flashdata('message', lang('expense_added'));
-            redirect('purchases/expenses');
+            redirect($this->mobilePageUrl('purchases/expenses'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['page_title'] = lang('add_expense');
@@ -952,325 +886,13 @@ public function delete($id = null)
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Get Purchase
-    |--------------------------------------------------------------------------
-    */
-    $purchase = $this->db
-        ->where('id', $id)
-        ->get('purchases')
-        ->row();
-
-    if (!$purchase) {
-
-        log_message(
-            'error',
-            'Purchase delete failed: Purchase not found. ID: ' . $id
-        );
-
-        if ($is_ajax_delete) {
-            $send_delete_json('error', 'Purchase not found', 404);
-        }
-
-        $this->session->set_flashdata(
-            'error',
-            'Purchase not found'
-        );
-
-        redirect('purchases');
-        return;
+    $result = $this->purchases_model->deletePurchaseSafely($id);
+    if ($is_ajax_delete) {
+        $send_delete_json($result['status'] ? 'success' : 'error', $result['message'], $result['status'] ? 200 : 409);
     }
-    
-    /*
-    |--------------------------------------------------------------------------
-    | Block Delete: Purchase Has Receive Records
-    |--------------------------------------------------------------------------
-    */
-    $receipt_count = $this->db
-        ->where('purchase_id', $id)
-        ->count_all_results('tec_purchase_receipts');
-    
-    if ($receipt_count > 0) {
-    
-        log_message(
-            'warning',
-            'Purchase delete blocked because receive records exist. ' .
-            'Purchase ID: ' . $id .
-            ' | Receipt Count: ' . $receipt_count
-        );
-    
-        if ($is_ajax_delete) {
-            $send_delete_json(
-                'error',
-                'ဤအဝယ်ဘောင်ချာကို ငွေလက်ခံခြင်း (သို့မဟုတ်) ပစ္စည်းလက်ခံထားခြင်းကြောင့် ဖျက်၍မရပါ။',
-                409
-            );
-        }
-
-        $this->session->set_flashdata(
-            'error','ဤအဝယ်ဘောင်ချာကို ငွေလက်ခံခြင်း (သို့မဟုတ်) ပစ္စည်းလက်ခံထားခြင်းကြောင့် ဖျက်၍မရပါ။'
-        );
-
-        redirect('purchases');
-        return;
-    }
-    
-    /*
-    |--------------------------------------------------------------------------
-    | Block Delete: Purchase Has Payment Records
-    |--------------------------------------------------------------------------
-    */
-    $payment_count = $this->db
-        ->where('purchase_id', $id)
-        ->count_all_results('tec_ppayments');
-    
-    if ($payment_count > 0) {
-    
-        log_message(
-            'warning',
-            'Purchase delete blocked because payments exist. ' .
-            'Purchase ID: ' . $id .
-            ' | Payment Count: ' . $payment_count
-        );
-    
-        if ($is_ajax_delete) {
-            $send_delete_json(
-                'error',
-                'ဤအဝယ်ဘောင်ချာအတွက် ငွေပေးချေမှု မှတ်တမ်းရှိပြီးဖြစ်သောကြောင့် ဖျက်၍မရပါ။',
-                409
-            );
-        }
-
-        $this->session->set_flashdata(
-            'error',
-            'ဤအဝယ်ဘောင်ချာအတွက် ငွေပေးချေမှု မှတ်တမ်းရှိပြီးဖြစ်သောကြောင့် ' .
-            'ဖျက်၍မရပါ။'
-        );
-
-        redirect('purchases');
-        return;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check Purchase Stock Has Been Used
-    |--------------------------------------------------------------------------
-    |
-    | stock_batches ထဲက qty_base သည် လက်ရှိကျန် stock ဖြစ်သည်။
-    | Purchase Item ရဲ့ မူလ base quantity ထက် လျော့နေပါက
-    | အဲဒီ Purchase stock ကို ရောင်း/ထုတ်သုံးပြီးသားဖြစ်သည်။
-    |
-    */
-
-    $items = $this->purchases_model
-        ->getAllPurchaseItems($id);
-
-    foreach ($items as $item) {
-
-        /*
-         * ဒီ Purchase + Product အတွက်
-         * လက်ရှိ Stock Batch balance
-         */
-        $batch = $this->db
-            ->select(
-                'COALESCE(SUM(qty_base), 0) AS remaining_qty',
-                false
-            )
-            ->where('purchase_id', $id)
-            ->where('product_id', $item->product_id)
-            ->get('stock_batches')
-            ->row();
-
-        $remaining_qty = $batch
-            ? (float) $batch->remaining_qty
-            : 0;
-
-
-        /*
-         * Purchase Item ရဲ့ original base quantity
-         *
-         * KLSPOS multi-unit purchase မှာ primary_qty ကို
-         * base quantity အဖြစ် သိမ်းထားပါက ဒီ field ကိုသုံးပါ။
-         */
-        $original_qty = isset($item->primary_qty)
-            ? (float) $item->primary_qty
-            : (float) $item->quantity;
-
-
-        /*
-         * Stock Received ဖြစ်ပြီး batch balance လျော့ထားတယ်ဆို
-         * အသုံးပြုပြီးဖြစ်သည်။
-         */
-        if (
-            (int) $purchase->received === 1 &&
-            $remaining_qty < $original_qty
-        ) {
-
-            log_message(
-                'warning',
-                'Purchase delete blocked because stock has been used. ' .
-                'Purchase ID: ' . $id .
-                ' | Product ID: ' . $item->product_id .
-                ' | Original Qty: ' . $original_qty .
-                ' | Remaining Qty: ' . $remaining_qty
-            );
-
-            if ($is_ajax_delete) {
-                $send_delete_json(
-                    'error',
-                    'ဤအဝယ်ဘောင်ချာမှ ပစ္စည်းအချို့ကို ရောင်းချခြင်း သို့မဟုတ် အသုံးပြုခြင်း ပြုလုပ်ပြီးဖြစ်သောကြောင့် ဖျက်၍မရပါ။',
-                    409
-                );
-            }
-
-            $this->session->set_flashdata(
-                'error',
-                'ဤအဝယ်ဘောင်ချာမှ ပစ္စည်းအချို့ကို ရောင်းချခြင်း သို့မဟုတ် ' .
-                'အသုံးပြုခြင်း ပြုလုပ်ပြီးဖြစ်သောကြောင့် ဖျက်၍မရပါ။'
-            );
-
-            redirect('purchases');
-            return;
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Delete Purchase
-    |--------------------------------------------------------------------------
-    */
-
-    $this->db->trans_begin();
-
-    try {
-
-        foreach ($items as $item) {
-
-            log_message(
-                'debug',
-                'Deleting stock for Product ID: ' .
-                $item->product_id
-            );
-
-
-            /*
-             * Delete Stock Movements
-             */
-            $this->db->where(
-                'purchase_id',
-                $id
-            );
-
-            $this->db->where(
-                'product_id',
-                $item->product_id
-            );
-
-            $this->db->delete(
-                'stock_movements'
-            );
-
-
-            /*
-             * Delete Stock Batches
-             */
-            $this->db->where(
-                'purchase_id',
-                $id
-            );
-
-            $this->db->where(
-                'product_id',
-                $item->product_id
-            );
-
-            $this->db->delete(
-                'stock_batches'
-            );
-        }
-
-
-        /*
-         * Delete Purchase Items
-         */
-        $this->db
-            ->where('purchase_id', $id)
-            ->delete('purchase_items');
-
-
-        /*
-         * Delete Purchase
-         */
-        $this->db
-            ->where('id', $id)
-            ->delete('purchases');
-
-
-        /*
-         * Transaction Check
-         */
-        if ($this->db->trans_status() === false) {
-
-            throw new Exception(
-                'Database transaction failed.'
-            );
-        }
-
-
-        $this->db->trans_commit();
-
-
-        log_message(
-            'info',
-            'Purchase deleted successfully. ID: ' .
-            $id .
-            ' | Ref: ' .
-            $purchase->reference_no .
-            ' | User ID: ' .
-            $this->session->userdata('user_id') .
-            ' | IP: ' .
-            $this->input->ip_address()
-        );
-
-
-        if ($is_ajax_delete) {
-            $send_delete_json(
-                'success',
-                'အဝယ်ဘောင်ချာကို အောင်မြင်စွာ ဖျက်ပြီးပါပြီ။'
-            );
-        }
-
-        /* AJAX မဟုတ်သော request အတွက် fallback */
-        redirect('purchases?delete_result=success');
-        return;
-
-    } catch (Exception $e) {
-
-        $this->db->trans_rollback();
-
-        log_message(
-            'error',
-            'Purchase delete failed. ID: ' .
-            $id .
-            ' | Error: ' .
-            $e->getMessage()
-        );
-
-        if ($is_ajax_delete) {
-            $send_delete_json(
-                'error',
-                'အဝယ်ဘောင်ချာကို ဖျက်၍မရပါ။',
-                500
-            );
-        }
-
-        redirect('purchases?delete_result=failed');
-        return;
-    }
+    $this->session->set_flashdata($result['status'] ? 'message' : 'error', $result['message']);
+    redirect($this->receiveReturnUrl('purchases'));
 }
-
 
     public function delete_expense($id = null)
     {
@@ -1292,7 +914,7 @@ public function delete($id = null)
                 unlink($this->upload_path . $expense->attachment);
             }
             $this->session->set_flashdata('message', lang('expense_deleted'));
-            redirect('purchases/expenses');
+            redirect($this->mobilePageUrl('purchases/expenses'));
         }
     }
 
@@ -1328,7 +950,7 @@ public function delete($id = null)
                 'total'    => $this->input->post('total'),
                 'note'      => $this->input->post('note', true),
             ];
-            if ($_FILES['userfile']['size'] > 0) {
+            if (!empty($_FILES['userfile']['size'])) {
                 $this->load->library('upload');
                 $config['upload_path']   = 'uploads/';
                 $config['allowed_types'] = $this->allowed_types;
@@ -1353,7 +975,7 @@ public function delete($id = null)
 
         if ($this->form_validation->run() == true && $this->purchases_model->updateExpense($id, $data)) {
             $this->session->set_flashdata('message', lang('expense_updated'));
-            redirect('purchases/expenses');
+            redirect($this->mobilePageUrl('purchases/expenses'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['expense']    = $this->purchases_model->getExpenseByID($id);
@@ -2016,7 +1638,7 @@ public function get_purchases()
                 lang('expense_type_added')
             );
 
-            redirect('purchases/expensetype');
+            redirect($this->mobilePageUrl('purchases/expensetype'));
         }
 
         $db_error = $this->db->error();
@@ -2179,7 +1801,7 @@ public function get_purchases()
 
         if ($this->form_validation->run() == true && $this->purchases_model->updateCategory($id, $data)) {
             $this->session->set_flashdata('message', lang('category_updated'));
-            redirect('purchases/expensetype');
+            redirect($this->mobilePageUrl('purchases/expensetype'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['category']   = $this->site->getExpenseTypeByID($id);
@@ -2246,7 +1868,7 @@ public function add_payment($id = null, $cid = null)
                 'store_id'    => $this->session->userdata('store_id'),
             ];
 
-            if ($_FILES['userfile']['size'] > 0) {
+            if (!empty($_FILES['userfile']['size'])) {
                 $this->load->library('upload');
                 $config['upload_path']   = 'files/';
                 $config['allowed_types'] = 'jpg|jpeg|png|gif|webp|pdf';
@@ -2797,7 +2419,7 @@ public function delete_expensetype($id = null)
             lang('expense_type_not_found')
         );
 
-        redirect('purchases/expensetype');
+        redirect($this->mobilePageUrl('purchases/expensetype'));
     }
 
     $expense_type = $this->purchases_model
@@ -2815,7 +2437,7 @@ public function delete_expensetype($id = null)
             lang('expense_type_not_found')
         );
 
-        redirect('purchases/expensetype');
+        redirect($this->mobilePageUrl('purchases/expensetype'));
     }
 
     /*
@@ -2837,7 +2459,7 @@ public function delete_expensetype($id = null)
             lang('expense_type_in_use')
         );
 
-        redirect('purchases/expensetype');
+        redirect($this->mobilePageUrl('purchases/expensetype'));
     }
 
     $deleted = $this->purchases_model
@@ -2862,7 +2484,7 @@ public function delete_expensetype($id = null)
             lang('expense_type_delete_failed')
         );
 
-        redirect('purchases/expensetype');
+        redirect($this->mobilePageUrl('purchases/expensetype'));
     }
 
     log_message(
@@ -2882,7 +2504,7 @@ public function delete_expensetype($id = null)
         lang('expense_type_deleted')
     );
 
-    redirect('purchases/expensetype');
+    redirect($this->mobilePageUrl('purchases/expensetype'));
 }
 
 public function quick_add_expense_category()
@@ -3126,6 +2748,20 @@ public function product_unit_data($product_id = null)
 |--------------------------------------------------------------------------
 | Purchases.php ထဲမှာ ထည့်ပါ။
 */
+private function receiveReturnUrl($path)
+{
+    $url = site_url($path);
+    $app = $this->input->get('app') == 1 || $this->input->post('app') == 1
+        || $this->input->get('mobile') == 1 || $this->input->post('mobile') == 1;
+    if ($app) {
+        $language = $this->input->post('app_lang', true)
+            ?: $this->input->get('app_lang', true)
+            ?: $this->Settings->selected_language;
+        $url .= '?' . http_build_query(['app' => 1, 'app_lang' => $language]);
+    }
+    return $url;
+}
+
 public function receive($id = null)
 {
     if ($this->input->get('id')) {
@@ -3140,7 +2776,7 @@ public function receive($id = null)
             'Invalid Purchase ID'
         );
 
-        redirect('purchases');
+        redirect($this->receiveReturnUrl('purchases'));
         return;
     }
 
@@ -3153,7 +2789,7 @@ public function receive($id = null)
             'Purchase not found'
         );
 
-        redirect('purchases');
+        redirect($this->receiveReturnUrl('purchases'));
         return;
     }
 
@@ -3166,7 +2802,7 @@ public function receive($id = null)
             'ဒီဘောင်ချာတွင် ပစ္စည်းမရှိပါ။'
         );
 
-        redirect('purchases');
+        redirect($this->receiveReturnUrl('purchases'));
         return;
     }
 
@@ -3236,11 +2872,11 @@ public function receive_products()
             'Purchase ID မမှန်ပါ။'
         );
 
-        redirect('purchases');
+        redirect($this->receiveReturnUrl('purchases'));
         return;
     }
 
-    $back_url = 'purchases/receive/' . $purchase_id;
+    $back_url = $this->receiveReturnUrl('purchases/receive/' . $purchase_id);
 
 
     // =========================================================
@@ -3255,7 +2891,7 @@ public function receive_products()
             'Purchase မတွေ့ပါ။'
         );
 
-        redirect('purchases');
+        redirect($this->receiveReturnUrl('purchases'));
         return;
     }
 
@@ -3265,7 +2901,7 @@ public function receive_products()
             'ဒီဘောင်ချာမှ ပစ္စည်းအားလုံး လက်ခံပြီးဖြစ်ပါသည်။'
         );
 
-        redirect('purchases');
+        redirect($this->receiveReturnUrl('purchases'));
         return;
     }
 
@@ -3502,25 +3138,11 @@ public function receive_products()
         isset($result['received_status']) &&
         (int) $result['received_status'] === 1
     ) {
-        redirect(
-            site_url('purchases') .
-            '?app=1&app_lang=' .
-            rawurlencode(
-                $this->input->post('app_lang', true)
-                ?: 'myanmar'
-            )
-        );
+        redirect($this->receiveReturnUrl('purchases'));
         return;
     }
 
-    redirect(
-        site_url('purchases/receive/' . $purchase_id) .
-        '?app=1&app_lang=' .
-        rawurlencode(
-            $this->input->post('app_lang', true)
-            ?: 'myanmar'
-        )
-    );
+    redirect($back_url);
 }
 
 
@@ -3815,235 +3437,13 @@ public function get_product_purchase($v = null)
 
     public function deletePurchaseReceipt($receipt_id)
     {
-        $receipt_id = (int) $receipt_id;
-
-        if ($receipt_id <= 0) {
-            return [
-                'status' => false,
-                'message' => 'Receipt ID မမှန်ပါ။'
-            ];
-        }
-
-        $receipt = $this->getPurchaseReceiptByID($receipt_id);
-
-        if (!$receipt) {
-            return [
-                'status' => false,
-                'message' => 'Receive history မတွေ့ပါ။'
-            ];
-        }
-
-        $item = $this->db
-            ->where('purchase_id', (int) $receipt->purchase_id)
-            ->where('product_id', (int) $receipt->product_id)
-            ->get('purchase_items', 1)
-            ->row();
-
-        if (!$item) {
-            return [
-                'status' => false,
-                'message' => 'ဆက်စပ် Purchase item မတွေ့ပါ။'
-            ];
-        }
-
-        /*
-        * IMPORTANT:
-        * Change this field name if your receipt table uses
-        * another quantity column.
-        */
-        $received_qty = (float) $receipt->quantity;
-
-        if ($received_qty <= 0) {
-            return [
-                'status' => false,
-                'message' => 'လက်ခံအရေအတွက် မမှန်ပါ။'
-            ];
-        }
-
-        $this->db->trans_begin();
-
-        // ---------------------------------------------------------
-        // 1. Reduce received quantity in purchase_items
-        // ---------------------------------------------------------
-
-        $new_received_qty =
-            (float) $item->received_primary_qty - $received_qty;
-
-        if ($new_received_qty < 0) {
-            $new_received_qty = 0;
-        }
-
-        $this->db
-            ->where('id', (int) $item->id)
-            ->update(
-                'purchase_items',
-                [
-                    'received_primary_qty' => $new_received_qty
-                ]
-            );
-
-        // ---------------------------------------------------------
-        // 2. Reverse stock
-        // ---------------------------------------------------------
-
-        $this->setStoreQuantity(
-            (int) $receipt->purchase_id,
-            (int) $receipt->product_id,
-            (int) $item->store_id,
-            0 - $received_qty
-        );
-
-        // ---------------------------------------------------------
-        // 3. Delete receipt history
-        // ---------------------------------------------------------
-
-        $this->db
-            ->where('id', $receipt_id)
-            ->delete('purchase_receipts');
-
-        if ($this->db->trans_status() === false) {
-            $this->db->trans_rollback();
-
-            return [
-                'status' => false,
-                'message' => 'Receive history ဖျက်ရာတွင် အမှားဖြစ်ပါသည်။'
-            ];
-        }
-
-        $this->db->trans_commit();
-
-        return [
-            'status' => true,
-            'message' => 'Receive history ဖျက်ပြီးပါပြီ။'
-        ];
+        return $this->purchases_model->deletePurchaseReceipt((int) $receipt_id);
     }
 
     public function updatePurchaseReceipt($receipt_id, $new_qty)
     {
-        $receipt_id = (int) $receipt_id;
-        $new_qty = (float) $new_qty;
-
-        if ($receipt_id <= 0 || $new_qty <= 0) {
-            return [
-                'status' => false,
-                'message' => 'အချက်အလက် မမှန်ပါ။'
-            ];
-        }
-
-        $receipt = $this->getPurchaseReceiptByID($receipt_id);
-
-        if (!$receipt) {
-            return [
-                'status' => false,
-                'message' => 'Receive history မတွေ့ပါ။'
-            ];
-        }
-
-        $item = $this->db
-            ->where('purchase_id', (int) $receipt->purchase_id)
-            ->where('product_id', (int) $receipt->product_id)
-            ->get('purchase_items', 1)
-            ->row();
-
-        if (!$item) {
-            return [
-                'status' => false,
-                'message' => 'Purchase item မတွေ့ပါ။'
-            ];
-        }
-
-        $old_qty = (float) $receipt->quantity;
-
-        $difference = $new_qty - $old_qty;
-
-        // Cannot receive more than ordered quantity
-        $ordered_qty = (float) $item->primary_qty;
-
-        $current_received = (float) $item->received_primary_qty;
-
-        $new_total_received =
-            $current_received + $difference;
-
-        if ($new_total_received < 0) {
-            return [
-                'status' => false,
-                'message' => 'လက်ခံအရေအတွက် 0 ထက်နည်း၍မရပါ။'
-            ];
-        }
-
-        if ($new_total_received > $ordered_qty) {
-            return [
-                'status' => false,
-                'message' => 'လက်ခံအရေအတွက်သည် မှာယူထားသောအရေအတွက်ထက် မကျော်ရပါ။'
-            ];
-        }
-
-        $this->db->trans_begin();
-
-        // Update purchase item received qty
-        $this->db
-            ->where('id', (int) $item->id)
-            ->update(
-                'purchase_items',
-                [
-                    'received_primary_qty' => $new_total_received
-                ]
-            );
-
-        // Update stock by DIFFERENCE
-        if ($difference != 0) {
-            $this->setStoreQuantity(
-                (int) $receipt->purchase_id,
-                (int) $receipt->product_id,
-                (int) $item->store_id,
-                $difference
-            );
-        }
-
-        // Update receipt
-        $this->db
-            ->where('id', $receipt_id)
-            ->update(
-                'purchase_receipts',
-                [
-                    'quantity' => $new_qty
-                ]
-            );
-
-        if ($this->db->trans_status() === false) {
-            $this->db->trans_rollback();
-
-            return [
-                'status' => false,
-                'message' => 'Receive history update မအောင်မြင်ပါ။'
-            ];
-        }
-
-        $this->db->trans_commit();
-
-        return [
-            'status' => true,
-            'message' => 'Receive history ပြင်ဆင်ပြီးပါပြီ။'
-        ];
+        return $this->purchases_model->updatePurchaseReceipt((int) $receipt_id, $new_qty);
     }
-
-    public function delete_purchase_item()
-    {
-        $item_id = (int) $this->input->post('item_id');
-
-        if ($item_id <= 0) {
-            echo json_encode([
-                'status' => false,
-                'message' => 'Purchase item ID မမှန်ပါ။'
-            ]);
-            return;
-        }
-
-        $result = $this->purchases_model->deletePurchaseItem($item_id);
-
-        echo json_encode($result);
-    }
-
     public function receive_history()
     {
         $purchase_id = (int) $this->input->post('purchase_id');

@@ -1278,7 +1278,8 @@ $(document).ready(function () {
 });
 </script>
 
-<section class="content stock-alerts-erp">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content stock-alerts-erp kls-mobile-ui">
     <div class="erp-shell">
 
         <div class="erp-page-header">

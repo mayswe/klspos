@@ -2539,6 +2539,14 @@ $(document).ready(function () {
         $temp.find('a').each(function () {
             var $link = $(this);
             var href = $link.attr('href') || '#';
+            if (purchaseActionConfig.receivePageQuery && href !== '#') {
+                var actionUrl = new URL(href, window.location.href);
+                if (actionUrl.origin === window.location.origin) {
+                    var appParams = new URLSearchParams(purchaseActionConfig.receivePageQuery);
+                    appParams.forEach(function (value, key) { actionUrl.searchParams.set(key, value); });
+                    href = actionUrl.href;
+                }
+            }
             var originalClass = $link.attr('class') || '';
             var dataToggle = $link.attr('data-toggle') || '';
             var dataTarget = $link.attr('data-target') || '';
@@ -4221,7 +4229,8 @@ $(document).ready(function () {
     updateSupplierDueWorkspace();
 });
 </script>
-<section class="content purchase-tabs-page">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content purchase-tabs-page kls-mobile-ui">
     <div class="erp-shell">
 
         

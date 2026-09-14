@@ -35,7 +35,7 @@ class Customers extends MY_Controller
                 die();
             }
             $this->session->set_flashdata('message', $this->lang->line('customer_added'));
-            redirect('customers');
+            redirect($this->mobilePageUrl('customers'));
         } else {
             if ($this->input->is_ajax_request()) {
                 echo json_encode(['status' => 'failed', 'msg' => validation_errors()]);
@@ -68,7 +68,7 @@ class Customers extends MY_Controller
 
         if ($this->customers_model->deleteCustomer($id)) {
             $this->session->set_flashdata('message', lang('customer_deleted'));
-            redirect('customers');
+            redirect($this->mobilePageUrl('customers'));
         }
     }
 
@@ -98,7 +98,7 @@ class Customers extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->customers_model->updateCustomer($id, $data)) {
             $this->session->set_flashdata('message', $this->lang->line('customer_updated'));
-            redirect('customers');
+            redirect($this->mobilePageUrl('customers'));
         } else {
             $this->data['customer']   = $this->customers_model->getCustomerByID($id);
             $this->data['customergroup']   = $this->customers_model->getAllCustomergroup();

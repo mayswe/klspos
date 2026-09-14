@@ -4725,7 +4725,8 @@ $(document).ready(function () {
 });
 </script>
 
-<section class="content sales-tabs-page">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content sales-tabs-page kls-mobile-ui">
     <div class="erp-shell">
 
         <div class="erp-page-header" style="display:none;">

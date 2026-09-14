@@ -83,7 +83,8 @@ $is_mobile_layout = $opening_stock_layout === 'mobile';
 </style>
 <?php endif; ?>
 
-<section class="content">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content kls-mobile-ui">
 <div class="row">
 <div class="col-xs-12">
 <div class="os-card <?= $is_mobile_layout ? 'os-mobile' : 'os-web'; ?>">

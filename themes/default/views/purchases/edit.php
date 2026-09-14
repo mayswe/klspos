@@ -1,15 +1,34 @@
-<?php (defined('BASEPATH')) OR exit('No direct script access allowed'); ?>
-
-<section class="content">
+<?php (defined('BASEPATH')) OR exit('No direct script access allowed');
+$edit_locked = (int)$purchase->received !== 0 || (float)$purchase->paid != 0;
+$edit_mobile = $this->input->get('app') == 1 || $this->input->get('mobile') == 1;
+$edit_query = $edit_mobile ? '?' . http_build_query(['app'=>1,'app_lang'=>$this->input->get('app_lang',true) ?: $this->Settings->selected_language]) : '';
+?>
+<?php if ($edit_mobile): ?>
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<link rel="stylesheet" href="<?= $assets ?>css/purchase-edit-mobile.css?v=1">
+<?php endif; ?>
+<section class="content <?= $edit_mobile ? 'kls-mobile-ui erp-page purchase-edit-mobile' : ''; ?>">
 <div class="row">
 <div class="col-xs-12">
 <div class="box box-primary">
 <div class="box-header">
+<?php if ($edit_mobile): ?>
+<a class="btn btn-default" href="<?= htmlspecialchars(site_url('purchases') . $edit_query, ENT_QUOTES, 'UTF-8'); ?>"><i class="fa fa-arrow-left"></i> <?= lang('purchases'); ?></a>
+<?php endif; ?>
 <h4><?= $page_title; ?></h4>
 </div>
 <div class="box-body">
 <div class="col-lg-12">
-<?php echo form_open_multipart("purchases/edit/".$purchase->id, 'class="validation edit-po-form"'); ?>
+<?php if ($edit_locked): ?>
+<div class="alert alert-info">This purchase has receipts or payments. Reverse them before editing purchase items.</div>
+<?php endif; ?>
+<?php
+$edit_action = 'purchases/edit/' . (int)$purchase->id;
+if ($this->input->get('app') == 1 || $this->input->get('mobile') == 1) {
+    $edit_action .= '?' . http_build_query(['app'=>1,'app_lang'=>$this->input->get('app_lang',true) ?: $this->Settings->selected_language]);
+}
+echo form_open_multipart($edit_action, 'class="validation edit-po-form"');
+?>
 
 <div class="row">
     <div class="col-md-6">
@@ -81,7 +100,8 @@
         <div class="form-group form-group-lg">
             <?= lang('paid', 'paid'); ?>
             <input type="number" class="form-control" id="advance_deducted" name="advance_deducted"
-                   step="0.01" value="<?= $purchase->advance_deducted ?? 0; ?>">
+                   step="0.01" value="<?= (float)$purchase->paid; ?>" readonly>
+            <p class="help-block">Use the payment action to record payments.</p>
         </div>
     </div>
     <div class="col-md-6">
@@ -100,8 +120,9 @@
     <div class="col-md-6">
         <div class="form-group form-group-lg">
             <?= lang('received', 'received'); ?>
-            <?php $sts = [1 => lang('received'), 0 => lang('not_received_yet')]; ?>
-            <?= form_dropdown('received', $sts, set_value('received', $purchase->received), 'class="form-control select2 tip" id="received" required="required" style="width:100%;"'); ?>
+            <?php $sts = [0 => lang('not_received_yet'), 1 => lang('received'), 2 => 'Partially received']; ?>
+            <?= form_dropdown('received', $sts, $purchase->received, 'class="form-control select2 tip" id="received" disabled style="width:100%;"'); ?>
+            <input type="hidden" name="received" value="<?= (int)$purchase->received; ?>">
         </div>
     </div>
 </div>
@@ -112,12 +133,18 @@
 </div>
 
 <div class="form-group form-group-lg">
+    <label for="delivery">Delivery cost</label>
+    <input type="number" name="delivery" id="delivery" class="form-control" min="0" step="0.01" value="<?= (float)$purchase->delivery; ?>">
+    <p class="help-block">Allocated across items by primary quantity when saved.</p>
+</div>
+
+<div class="form-group form-group-lg">
     <?= lang("note", 'note'); ?>
     <?= form_textarea('note', $purchase->note, 'class="form-control redactor" id="note"'); ?>
 </div>
 
 <div class="form-group form-group-lg">
-    <?= form_submit('update', lang('update'), 'class="btn btn-primary" id="edit_purchase"'); ?>
+    <?= form_submit('update', lang('update'), 'class="btn btn-primary" id="edit_purchase"' . ($edit_locked ? ' disabled' : '')); ?>
     <button type="button" id="reset" class="btn btn-danger"><?= lang('reset'); ?></button>
 </div>
 
@@ -147,15 +174,14 @@ $('#reset').click(function () {
 });
 $('#edit_purchase').click(function () {
     $(window).unbind('beforeunload');
-    $('form.edit-po-form').submit();
 });
 </script>
 
 <script>
 var product_units = <?= json_encode($product_units); ?>;
-var product_conversions = <?= json_encode($product_conversions); ?>;
-var product_unit_prices = <?= json_encode($product_unit_prices); ?>;
-var product_unit_conversions = <?= json_encode($product_unit_conversions); ?>;
+var product_conversions = <?= json_encode($product_conversions ?? []); ?>;
+var product_unit_prices = <?= json_encode($product_unit_prices ?? []); ?>;
+var product_unit_conversions = <?= json_encode($product_unit_conversions ?? []); ?>;
 var all_units = <?php 
     $units = $this->site->getAllUnits();
     echo json_encode($units); 

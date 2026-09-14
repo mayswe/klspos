@@ -1314,7 +1314,8 @@ $(document).ready(function () {
 });
 </script>
 
-<section class="content closing-erp">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content closing-erp kls-mobile-ui">
     <div class="closing-shell">
 
         <div class="erp-page-header">

@@ -48,7 +48,7 @@ class Warehouses extends MY_Controller{
 
         if ($this->form_validation->run() == true && $this->Warehouse_model->insert($data)) {
             $this->session->set_flashdata('message', lang('warehouse_added'));
-            redirect('warehouses');
+            redirect($this->mobilePageUrl('warehouses'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['page_title'] = lang('add_warehouses');
@@ -86,7 +86,7 @@ class Warehouses extends MY_Controller{
 
         if ($this->form_validation->run() == true && $this->Warehouse_model->update($id, $data)) {
             $this->session->set_flashdata('message', lang('warehouse_updated'));
-            redirect('warehouses');
+            redirect($this->mobilePageUrl('warehouses'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['warehouse']   = $this->Warehouse_model->get_by_id($id);
@@ -114,7 +114,7 @@ class Warehouses extends MY_Controller{
 
         if ($this->Warehouse_model->delete($id)) {
             $this->session->set_flashdata('message', lang('warehouse_deleted'));
-            redirect('warehouses');
+            redirect($this->mobilePageUrl('warehouses'));
         }
     }
 

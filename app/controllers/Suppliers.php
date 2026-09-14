@@ -39,7 +39,7 @@ class Suppliers extends MY_Controller
                 die();
             }
             $this->session->set_flashdata('message', $this->lang->line('supplier_added'));
-            redirect('suppliers');
+            redirect($this->mobilePageUrl('suppliers'));
         } else {
             if ($this->input->is_ajax_request()) {
                 echo json_encode(['status' => 'failed', 'msg' => validation_errors()]);
@@ -72,7 +72,7 @@ class Suppliers extends MY_Controller
 
         if ($this->suppliers_model->deleteSupplier($id)) {
             $this->session->set_flashdata('message', lang('supplier_deleted'));
-            redirect('suppliers');
+            redirect($this->mobilePageUrl('suppliers'));
         }
     }
 
@@ -100,7 +100,7 @@ class Suppliers extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->suppliers_model->updateSupplier($id, $data)) {
             $this->session->set_flashdata('message', $this->lang->line('supplier_updated'));
-            redirect('suppliers');
+            redirect($this->mobilePageUrl('suppliers'));
         } else {
             $this->data['supplier']   = $this->suppliers_model->getSupplierByID($id);
             $this->data['error']      = (validation_errors()) ? validation_errors() : $this->session->flashdata('error');

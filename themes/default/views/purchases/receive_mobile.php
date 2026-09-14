@@ -1047,7 +1047,8 @@ body {
 
 </style>
 
-<div class="receive-page">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<div class="receive-page kls-mobile-ui">
 
     <div class="receive-page-card">
 

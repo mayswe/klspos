@@ -583,7 +583,8 @@ body,
     });
 </script>
 
-<section class="content erp-expenses-page">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content erp-expenses-page kls-mobile-ui">
     <div class="row">
         <div class="col-xs-12">
 

@@ -1,0 +1,322 @@
+/* Canonical Products listing action styles, shared by mobile lists. */
+.erp-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    width: 230px;
+    min-width: 230px;
+    margin: 0 auto;
+}
+
+.erp-actions .erp-action-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 7px 9px !important;
+    border: 1px solid #d8e2ea !important;
+    border-radius: 9px !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    font-size:15px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    text-align: left !important;
+    text-decoration: none !important;
+    white-space: normal !important;
+    box-shadow: none !important;
+    overflow: hidden;
+}
+
+.erp-actions .erp-action-btn:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-content: center !important;
+}
+
+.erp-actions .erp-action-icon {
+    width: 27px;
+    height: 27px;
+    flex: 0 0 27px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #edf2f7;
+    color: #475569;
+    font-size:16px;
+}
+
+.erp-actions .erp-action-label {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.erp-actions .erp-action-btn:hover,
+.erp-actions .erp-action-btn:focus {
+    transform: translateY(-1px);
+    text-decoration: none !important;
+    outline: 0 !important;
+    box-shadow: 0 5px 12px rgba(15, 23, 42, .09) !important;
+}
+
+/* View / details */
+.erp-actions .erp-action-view {
+    border-color: #cfe0ff !important;
+    color: #2563eb !important;
+    background: #f8fbff !important;
+}
+
+.erp-actions .erp-action-view .erp-action-icon {
+    background: #e6efff;
+    color: #2563eb;
+}
+
+/* Edit */
+.erp-actions .erp-action-edit {
+    border-color: #d7e2ea !important;
+    color: #334155 !important;
+    background: #ffffff !important;
+}
+
+.erp-actions .erp-action-edit .erp-action-icon {
+    background: #e8eef3;
+    color: #475569;
+}
+
+/* Selling price */
+.erp-actions .erp-action-price {
+    border-color: #bfdbfe !important;
+    color: #1d4ed8 !important;
+    background: #f4f8ff !important;
+}
+
+.erp-actions .erp-action-price .erp-action-icon {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* Unit conversion / stock */
+.erp-actions .erp-action-unit,
+.erp-actions .erp-action-stock {
+    border-color: #bce8cc !important;
+    color: #15803d !important;
+    background: #f3fff7 !important;
+}
+
+.erp-actions .erp-action-unit .erp-action-icon,
+.erp-actions .erp-action-stock .erp-action-icon {
+    background: #dff7e7;
+    color: #15803d;
+}
+
+/* Barcode / print / copy */
+.erp-actions .erp-action-print,
+.erp-actions .erp-action-copy {
+    border-color: #f0e2bd !important;
+    color: #8a6411 !important;
+    background: #fffdf7 !important;
+}
+
+.erp-actions .erp-action-print .erp-action-icon,
+.erp-actions .erp-action-copy .erp-action-icon {
+    background: #fbf1d8;
+    color: #8a6411;
+}
+
+/* Delete */
+.erp-actions .erp-action-delete {
+    border-color: #ffc3cb !important;
+    color: #dc3545 !important;
+    background: #fff8f9 !important;
+}
+
+.erp-actions .erp-action-delete .erp-action-icon {
+    background: #ffe2e6;
+    color: #dc3545;
+}
+
+/* Action icon meanings shown below the product table */
+.erp-action-legend {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid #dbe4ec;
+    border-radius: 13px;
+    background: #f8fafc;
+}
+
+.erp-action-legend-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.erp-action-legend-list {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px 16px;
+}
+
+.erp-action-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #334155;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.erp-action-legend-icon {
+    width: 31px;
+    height: 31px;
+    flex: 0 0 31px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e2ea;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #475569;
+    font-size: 16px;
+}
+
+.erp-action-legend-view .erp-action-legend-icon {
+    border-color: #cfe0ff;
+    background: #e6efff;
+    color: #2563eb;
+}
+
+.erp-action-legend-unit .erp-action-legend-icon,
+.erp-action-legend-stock .erp-action-legend-icon {
+    border-color: #bce8cc;
+    background: #dff7e7;
+    color: #15803d;
+}
+
+.erp-action-legend-print .erp-action-legend-icon,
+.erp-action-legend-copy .erp-action-legend-icon {
+    border-color: #f0e2bd;
+    background: #fbf1d8;
+    color: #8a6411;
+}
+
+.erp-action-legend-delete .erp-action-legend-icon {
+    border-color: #ffc3cb;
+    background: #ffe2e6;
+    color: #dc3545;
+}
+
+@media (max-width: 767px) {
+    .erp-action-legend-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+}
+
+@media (max-width: 420px) {
+    .erp-action-legend-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+@media (max-width: 1024px) {
+    .kls-action-table .action-cell {
+        width: 190px !important;
+        min-width: 190px !important;
+        padding: 5px 6px !important;
+        white-space: nowrap !important;
+    }
+
+    .kls-action-table .erp-actions {
+        display: flex !important;
+        flex-flow: row nowrap !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        width: auto !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+    }
+
+    .kls-action-table .erp-actions .erp-action-btn,
+    .kls-action-table .erp-actions .erp-action-btn:last-child:nth-child(odd) {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: 0 0 52px !important;
+        width: 52px !important;
+        min-width: 52px !important;
+        max-width: 52px !important;
+        height: 52px !important;
+        min-height: 52px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        gap: 0 !important;
+        border-radius: 8px !important;
+        grid-column: auto !important;
+        overflow: visible !important;
+    }
+
+    .kls-action-table .erp-actions .erp-action-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 30px !important;
+        height: 30px !important;
+        flex: 0 0 30px !important;
+        border-radius: 7px !important;
+        font-size: 16px !important;
+    }
+
+    .kls-action-table .erp-actions .erp-action-label {
+        display: none !important;
+    }
+
+}
+
+/* Action Buttons - Finger Friendly */
+.kls-action-table .erp-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 7px !important;
+}
+
+.kls-action-table .erp-actions .erp-action-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 46px !important;
+    min-width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border-radius: 7px !important;
+    font-size: 18px !important;
+}
+
+.kls-action-table .erp-actions .erp-action-btn i {
+    font-size: 18px !important;
+}
+
+/* Text မပြဘဲ Icon ပဲ */
+.kls-action-table .erp-actions .erp-action-label {
+    display: none !important;
+}
+.kls-action-table .erp-actions .erp-action-btn:last-child:nth-child(odd) { height:46px !important; min-height:46px !important; border-radius:7px !important; }

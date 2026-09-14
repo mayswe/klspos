@@ -1,0 +1,41 @@
+/* Included only for the explicitly mapped app-mode pages. */
+.main-header, .main-sidebar, .main-footer, .control-sidebar, .content-header { display: none !important; }
+.wrapper, .content-wrapper { margin: 0 !important; padding-top: 0 !important; min-height: 100vh !important; background: #f4f7fb !important; }
+.mobile-shared-page { padding: 16px !important; max-width: 1100px; margin: auto; background: #f4f7fb; font-family: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 16px; color: var(--mobile-text); }
+.mobile-page-nav { display: flex; gap: 12px; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; }
+.mobile-shared-page .content { padding: 0; min-height: 0; }
+.mobile-shared-page .box-header { padding: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.mobile-shared-page .box-header h3, .mobile-shared-page .box-header h4 { margin: 0; font-family: "Source Sans Pro", sans-serif; font-size: 24px; font-weight: 700; line-height: 1.5; color: var(--mobile-text); }
+.mobile-shared-page .box-body { padding: 16px; }
+.mobile-shared-page .btn { min-height: 44px; border-radius: 10px; white-space: normal; font-size: 16px; font-weight: 600; padding: 10px 14px; }
+.mobile-shared-page .btn-primary { background: var(--mobile-primary); border-color: var(--mobile-primary); color: #fff; }
+.mobile-shared-page .btn-primary:hover, .mobile-shared-page .btn-primary:focus { background: #115e59; border-color: #115e59; }
+.mobile-shared-page .btn-default { background: #fff; color: var(--mobile-text); border: 1px solid var(--mobile-border); }
+.mobile-shared-page table { min-width: 720px; }
+.mobile-shared-page table .btn { min-width: 44px; }
+.mobile-shared-page input, .mobile-shared-page select, .mobile-shared-page textarea { max-width: 100%; }
+.mobile-shared-page .select2-container { width: 100% !important; max-width: 100%; }
+.mobile-shared-page .dataTables_length, .mobile-shared-page .dataTables_filter { float: none !important; text-align: left !important; margin-bottom: 12px; }
+.mobile-shared-page .dataTables_paginate { float: none !important; white-space: normal; }
+.mobile-shared-page .dt-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.mobile-shared-page .mobile-page-search { margin-bottom: 16px; border: 1px solid var(--mobile-border) !important; }
+.mobile-shared-page label, .mobile-shared-page .dataTables_length, .mobile-shared-page .dataTables_info { font-size: 16px; }
+.mobile-shared-page .form-control, .mobile-shared-page input, .mobile-shared-page select, .mobile-shared-page textarea { font-family: inherit; font-size: 16px; }
+.mobile-shared-page table thead th { font-size: 15px; font-weight: 800; color: #1f2937; background: #f8fafc; padding: 8px 6px; vertical-align: middle; border-color: var(--mobile-border); }
+.mobile-shared-page .table > thead > tr.active > th { background-color: #f8fafc; }
+.mobile-shared-page table tbody td { font-size: 16px; font-weight: 400; color: #334155; padding: 5px 6px; vertical-align: middle; border-color: var(--mobile-border); }
+.mobile-shared-page table tfoot th, .mobile-shared-page table tfoot td { font-size: 16px; background: #f8fafc; color: var(--mobile-text); }
+.mobile-shared-page .table-striped > tbody > tr:nth-of-type(odd) { background: #fff; }
+.mobile-shared-page .table-hover > tbody > tr:hover { background: #f0fdfa; }
+.mobile-shared-page .pagination > li > a { font-size: 16px; color: var(--mobile-primary); border-color: var(--mobile-border); }
+.mobile-shared-page .pagination > .active > a { color: #fff; }
+.mobile-shared-page .box-header { border-bottom: 1px solid var(--mobile-border); background: #fff; }
+.mobile-shared-page #expData { min-width: 1150px; }
+.mobile-shared-page #expData tbody td:first-child { white-space: nowrap; }
+.mobile-shared-page #expData tbody td:nth-child(2), .mobile-shared-page #expData tbody td:nth-child(3) { min-width: 150px; }
+@media(max-width:380px) { .mobile-shared-page { padding: 10px !important; } }
+@media(max-width:767px) {
+    .mobile-shared-page .col-lg-12 { padding-left: 0; padding-right: 0; }
+    .mobile-shared-page .form-group { margin-bottom: 18px; }
+    .mobile-shared-page .box-tools { position: static; }
+}

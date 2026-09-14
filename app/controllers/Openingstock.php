@@ -237,7 +237,7 @@ public function add()
         if ($success && $this->db->trans_status() !== false) {
             $this->db->trans_commit();
             $this->session->set_flashdata('message', lang('opening_stock_added'));
-            redirect('openingstock');
+            redirect($this->mobilePageUrl('openingstock'));
         } else {
             $this->db->trans_rollback();
             $this->session->set_flashdata('error', lang('something_went_wrong'));
@@ -432,7 +432,7 @@ public function edit($id = null)
 
     if ($this->form_validation->run() == true && $this->Openingstock_model->updateOpeningStock($id, $data)) {
         $this->session->set_flashdata('message', lang('opening_stock_updated'));
-        redirect('openingstock');
+        redirect($this->mobilePageUrl('openingstock'));
     } else {
         // load data for view
         $this->data['error']         = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
@@ -452,13 +452,13 @@ public function view($id = null)
 {
     if (!$id) {
         $this->session->set_flashdata('error', lang('invalid_transfer_id'));
-        redirect('openingstock');
+        redirect($this->mobilePageUrl('openingstock'));
     }
 
     $this->data['transfer'] = $this->Stock_model->getTransferByID($id);
     if (!$this->data['transfer']) {
         $this->session->set_flashdata('error', lang('transfer_not_found'));
-        redirect('openingstock');
+        redirect($this->mobilePageUrl('openingstock'));
     }
 
     $this->data['items'] = $this->Stock_model->getTransferItems($id);
@@ -530,7 +530,7 @@ public function save()
         $this->session->set_flashdata('success', 'Opening stock saved successfully.');
     }
 
-    redirect('openingstock');
+    redirect($this->mobilePageUrl('openingstock'));
 }
 
 public function delete($id = null)
@@ -571,7 +571,7 @@ public function delete($id = null)
         }
     }
 
-    redirect('openingstock'); // redirect back to the opening stock index
+    redirect($this->mobilePageUrl('openingstock')); // redirect back to the opening stock index
 }
 
 

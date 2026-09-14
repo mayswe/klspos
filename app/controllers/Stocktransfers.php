@@ -69,7 +69,7 @@ class Stocktransfers extends MY_Controller {
 
         if ($success) {
             $this->session->set_flashdata('message', lang('stock_transfer_success'));
-            redirect('stocktransfers');
+            redirect($this->mobilePageUrl('stocktransfers'));
         } else {
             $this->session->set_flashdata('error', lang('something_went_wrong'));
             redirect('stocktransfers/add');
@@ -159,13 +159,13 @@ public function view($id = null)
 {
     if (!$id) {
         $this->session->set_flashdata('error', lang('invalid_transfer_id'));
-        redirect('stocktransfers');
+        redirect($this->mobilePageUrl('stocktransfers'));
     }
 
     $this->data['transfer'] = $this->Stocktransfer_model->getTransferByID($id);
     if (!$this->data['transfer']) {
         $this->session->set_flashdata('error', lang('transfer_not_found'));
-        redirect('stocktransfers');
+        redirect($this->mobilePageUrl('stocktransfers'));
     }
 
     $this->data['items'] = $this->Stocktransfer_model->getTransferItems($id);
@@ -312,7 +312,7 @@ public function delete($id = null)
         $this->session->set_flashdata('message', lang('stock_deleted'));
     }
 
-    redirect('stocktransfers');
+    redirect($this->mobilePageUrl('stocktransfers'));
 }
 
 public function get_stock_qty()

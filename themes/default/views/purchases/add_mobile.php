@@ -909,7 +909,8 @@ $easy_purchase_labels = [
 </style>
 
 
-<section class="content">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content kls-mobile-ui">
 
     <div class="easy-po-page">
 

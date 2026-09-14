@@ -86,7 +86,7 @@ class Categories extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->categories_model->addCategory($data)) {
             $this->session->set_flashdata('message', lang('category_added'));
-            redirect('categories');
+            redirect($this->mobilePageUrl('categories'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['page_title'] = lang('add_category');
@@ -112,7 +112,7 @@ class Categories extends MY_Controller
 
         if ($this->categories_model->deleteCategory($id)) {
             $this->session->set_flashdata('message', lang('category_deleted'));
-            redirect('categories');
+            redirect($this->mobilePageUrl('categories'));
         }
     }
 
@@ -182,7 +182,7 @@ class Categories extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->categories_model->updateCategory($id, $data)) {
             $this->session->set_flashdata('message', lang('category_updated'));
-            redirect('categories');
+            redirect($this->mobilePageUrl('categories'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['category']   = $this->site->getCategoryByID($id);
@@ -297,7 +297,7 @@ class Categories extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->categories_model->add_categories($data)) {
             $this->session->set_flashdata('message', lang('categories_added'));
-            redirect('categories');
+            redirect($this->mobilePageUrl('categories'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['page_title'] = lang('import_categories');

@@ -5,6 +5,7 @@ if (!defined('BASEPATH')) {
 
 class Purchases_model extends CI_Model
 {
+    private $last_receive_batch_id;
     public function __construct()
     {
         parent::__construct();
@@ -498,33 +499,55 @@ public function addPurchase($data, $items, $payment_attachment = null)
 
     public function deletePurchase($id)
     {
-        $purchase = $this->getPurchaseByID($id);
-        if ($purchase->received) {
-            $oitems = $this->getAllPurchaseItems($id);
-            foreach ($oitems as $oitem) {
-                if ($product = $this->site->getProductByID($oitem->product_id)) {
-                    // Deduct stock quantity from store stock
-                    $this->setStoreQuantity($id, $oitem->product_id, $purchase->store_id, (0 - $oitem->quantity));
-                }
-            }
-        }
-
-        // Delete related product_batches
-        $this->db->delete('product_batches', ['purchase_id' => $id]);
-
-        // Delete purchase_items and the purchase itself
-        if (
-            $this->db->delete('purchase_items', ['purchase_id' => $id]) &&
-            $this->db->delete('purchases', ['id' => $id])
-        ) {
-            return true;
-        }
-
-        return false;
+        return $this->deletePurchaseSafely($id)['status'];
     }
 
-
-    
+    public function deletePurchaseSafely($id)
+    {
+        $id = (int)$id;
+        $this->db->trans_begin();
+        try {
+            $purchase = $this->db->query('SELECT * FROM '.$this->db->dbprefix('purchases').' WHERE id = ? FOR UPDATE', [$id])->row();
+            if (!$purchase) { throw new RuntimeException('Purchase not found.'); }
+            if ((float)$purchase->paid != 0 || $this->db->where('purchase_id',$id)->count_all_results('ppayments')) {
+                throw new RuntimeException('Reverse purchase payments before deleting this purchase.');
+            }
+            if ($this->db->where('purchase_id',$id)->count_all_results('purchase_receipts')) {
+                throw new RuntimeException('Reverse receive history before deleting this purchase.');
+            }
+            $items = $this->db->query('SELECT * FROM '.$this->db->dbprefix('purchase_items').' WHERE purchase_id = ? FOR UPDATE', [$id])->result();
+            foreach ($items as $item) {
+                if ((float)$item->received_primary_qty != 0 || (float)$item->received_secondary_qty != 0) {
+                    throw new RuntimeException('Received quantities remain. Reconcile receive history first.');
+                }
+            }
+            if ((int)$purchase->received !== 0) {
+                throw new RuntimeException('Purchase is still marked received. Reconcile receive history first.');
+            }
+            $batches = $this->db->query('SELECT * FROM '.$this->db->dbprefix('stock_batches').' WHERE purchase_id = ? FOR UPDATE', [$id])->result();
+            foreach ($batches as $batch) {
+                if ((float)$batch->qty_base != 0 || (float)$batch->qty_primary != 0 || (float)$batch->qty_secondary != 0) {
+                    throw new RuntimeException('Purchase stock remains. Reverse receive history first.');
+                }
+                if ($this->db->where('batch_id',$batch->id)->count_all_results('cogs_logs')) {
+                    throw new RuntimeException('Purchase stock has sale history and cannot be deleted.');
+                }
+            }
+            // Preserve zero-balance batches and signed movements as the reversal audit.
+            // Legacy product_batches cannot be safely reconciled by this path.
+            if ($this->db->table_exists('product_batches') && $this->db->where('purchase_id',$id)->count_all_results('product_batches')) {
+                throw new RuntimeException('Legacy stock records require reconciliation before deletion.');
+            }
+            $this->db->where('purchase_id',$id)->delete('purchase_items');
+            $this->db->where('id',$id)->delete('purchases');
+            if ($this->db->trans_status() === false) { throw new RuntimeException('Purchase deletion failed.'); }
+            $this->db->trans_commit();
+            return ['status'=>true, 'message'=>'Purchase deleted.'];
+        } catch (Throwable $error) {
+            $this->db->trans_rollback();
+            return ['status'=>false, 'message'=>$error->getMessage()];
+        }
+    }
 
     public function getExpenseByID($id)
     {
@@ -631,29 +654,85 @@ public function addPurchase($data, $items, $payment_attachment = null)
         return false;
     }
 
+    public $purchase_edit_error = '';
+
     public function updatePurchase($id, $data = null, $items = [])
     {
-        $purchase = $this->getPurchaseByID($id);
-        if ($purchase->received) {
-            $oitems = $this->getAllPurchaseItems($id);
-            foreach ($oitems as $oitem) {
-                if ($product = $this->site->getProductByID($oitem->product_id)) {
-                    $this->setStoreQuantity($id, $oitem->product_id, $purchase->store_id, (0 - $oitem->quantity));
+        $this->purchase_edit_error = '';
+        $this->db->trans_begin();
+        try {
+            $purchase = $this->db->query('SELECT * FROM '.$this->db->dbprefix('purchases').' WHERE id = ? FOR UPDATE', [(int)$id])->row();
+            if (!$purchase || !is_array($data) || !$items) { throw new RuntimeException('Purchase and at least one valid item are required.'); }
+            if ((int)$purchase->received || (float)$purchase->paid != 0
+                || $this->db->where('purchase_id',$id)->count_all_results('purchase_receipts')
+                || $this->db->where('purchase_id',$id)->count_all_results('ppayments')) {
+                throw new RuntimeException('Reverse receive history and payments before editing purchase items.');
+            }
+            foreach ($this->db->where('purchase_id',$id)->get('purchase_items')->result() as $old) {
+                if ((float)$old->received_primary_qty != 0 || (float)$old->received_secondary_qty != 0) {
+                    throw new RuntimeException('Received quantities must be reconciled before editing.');
                 }
             }
-        }
-        if ($this->db->update('purchases', $data, ['id' => $id]) && $this->db->delete('purchase_items', ['purchase_id' => $id])) {
+            foreach ($this->db->where('purchase_id',$id)->get('stock_batches')->result() as $batch) {
+                if ((float)$batch->qty_base != 0 || (float)$batch->qty_primary != 0 || (float)$batch->qty_secondary != 0) {
+                    throw new RuntimeException('Remaining stock must be reconciled before editing.');
+                }
+            }
+            if ($this->db->table_exists('product_batches') && $this->db->where('purchase_id',$id)->count_all_results('product_batches')) {
+                throw new RuntimeException('Legacy stock records require reconciliation before editing.');
+            }
+            if (!empty($data['received']) || !empty($data['paid']) || !empty($data['advance_deducted'])) {
+                throw new RuntimeException('Use Receive and Payment actions after saving the purchase.');
+            }
+            $number = function ($value, $positive = false) {
+                if (!is_numeric($value) || !is_finite((float)$value) || ($positive ? (float)$value <= 0 : (float)$value < 0)) {
+                    throw new RuntimeException('Quantities and costs must be valid non-negative numbers; primary quantity must be positive.');
+                }
+                return (float)$value;
+            };
+            $delivery = round($number($data['delivery'] ?? $purchase->delivery),2);
+            $rows = []; $total = 0; $quantity = 0;
             foreach ($items as $item) {
-                $item['purchase_id'] = $id;
-                if ($this->db->insert('purchase_items', $item)) {
-                    if ($data['received'] && $product = $this->site->getProductByID($item['product_id'])) {
-                        $this->setStoreQuantity($id, $item['product_id'], $purchase->store_id, $item['quantity']);
-                    }
+                $product = $this->getProductByID((int)($item['product_id'] ?? 0));
+                if (!$product) { throw new RuntimeException('Purchase product not found.'); }
+                $primary = $number($item['primary_qty'] ?? null,true);
+                $secondary = $number($item['secondary_qty'] ?? 0);
+                $cost = $number($item['net_unit_cost'] ?? null);
+                $unit = (int)($item['primary_unit'] ?? 0);
+                if ($unit !== (int)$product->base_unit_id && !$this->db->get_where('product_unit_conversions',['product_id'=>$product->id,'unit_id'=>$unit])->row()) {
+                    throw new RuntimeException('Primary unit does not belong to this product.');
                 }
+                $secondaryUnit = (int)($item['secondary_unit'] ?? 0);
+                if ($secondary > 0 && (empty($product->is_dual_unit) || !$secondaryUnit || $secondaryUnit !== (int)$product->secondary_unit_id)) {
+                    throw new RuntimeException('Secondary unit does not belong to this product.');
+                }
+                $subtotal = round($primary*$cost,2);
+                $rows[] = ['purchase_id'=>(int)$id,'product_id'=>(int)$product->id,
+                    'primary_qty'=>$primary,'primary_unit'=>$unit,'secondary_qty'=>$secondary,
+                    'secondary_unit'=>$secondaryUnit ?: null,'net_unit_cost'=>$cost,'subtotal'=>$subtotal,
+                    'received_primary_qty'=>0,'received_secondary_qty'=>0];
+                $quantity += $primary; $total += $subtotal;
             }
+            // Allocate header delivery once. The final line receives rounding residue.
+            $remaining = $delivery;
+            foreach ($rows as $index => &$row) {
+                $row['delivery'] = $index === count($rows)-1 ? $remaining : min($remaining,round($delivery*$row['primary_qty']/$quantity,2));
+                $remaining = round($remaining-$row['delivery'],2);
+            }
+            unset($row);
+            $header = array_intersect_key($data,array_flip(['date','reference','note','supplier_id','store_id','container_box','exchange_rate','attachment']));
+            $header = array_merge($header,['total'=>round($total+$delivery,2),'delivery'=>$delivery,'paid'=>0,'advance_deducted'=>0,'status'=>'due','received'=>0]);
+            $this->db->where('id',$id)->update('purchases',$header);
+            $this->db->where('purchase_id',$id)->delete('purchase_items');
+            foreach ($rows as $row) { $this->db->insert('purchase_items',$row); }
+            if ($this->db->trans_status() === false) { throw new RuntimeException('Purchase edit failed. No changes saved.'); }
+            $this->db->trans_commit();
             return true;
+        } catch (Throwable $error) {
+            $this->db->trans_rollback();
+            $this->purchase_edit_error = $error->getMessage();
+            return false;
         }
-        return false;
     }
 
     public function addCategory($data)
@@ -1472,6 +1551,10 @@ public function receivePurchaseItems(
                     : null,
         ];
 
+        if ($this->db->field_exists('stock_batch_id', 'purchase_receipts')) {
+            $receipt_data['stock_batch_id'] = $this->last_receive_batch_id;
+        }
+
 
         if (
             !$this->db->insert(
@@ -1498,6 +1581,12 @@ public function receivePurchaseItems(
         }
 
 
+        $receipt_id = $this->db->insert_id();
+        if ($this->db->field_exists('purchase_receipt_id', 'stock_movements')) {
+            $this->db->where('batch_id', $this->last_receive_batch_id)
+                ->where('movement_type', 'purchase')
+                ->update('stock_movements', ['purchase_receipt_id' => $receipt_id]);
+        }
         $received_any = true;
 
         $received_rows[] = [
@@ -2007,6 +2096,7 @@ public function setStoreQuantity(
 
 
     $batch_id = (int) $this->db->insert_id();
+    $this->last_receive_batch_id = $batch_id;
     
     // =========================================================
 // Update current product base cost
@@ -2262,78 +2352,144 @@ public function getAllPurchaseItems($purchase_id)
 
     public function deletePurchaseReceipt($receipt_id)
     {
-        $receipt = $this->getPurchaseReceiptByID($receipt_id);
-        if (!$receipt) {
-            return ['status' => false, 'message' => 'Receive history မတွေ့ပါ။'];
-        }
-
-        $item = $this->db->where('purchase_id', (int) $receipt->purchase_id)
-            ->where('product_id', (int) $receipt->product_id)
-            ->get('purchase_items', 1)->row();
-        if (!$item) {
-            return ['status' => false, 'message' => 'ဆက်စပ် Purchase item မတွေ့ပါ။'];
-        }
-
-        $this->db->trans_begin();
-        $new_qty = max(0, (float) $item->received_primary_qty - (float) $receipt->received_primary_qty);
-        $this->db->where('id', (int) $item->id)
-            ->update('purchase_items', ['received_primary_qty' => $new_qty]);
-        $this->setStoreQuantity((int) $receipt->purchase_id, (int) $receipt->product_id,
-            (int) $item->store_id, 0 - (float) $receipt->received_primary_qty);
-        $this->db->where('id', (int) $receipt_id)->delete('purchase_receipts');
-        $this->syncPurchaseReceivedStatus((int) $receipt->purchase_id);
-
-        if ($this->db->trans_status() === false) {
-            $this->db->trans_rollback();
-            return ['status' => false, 'message' => 'Receive history ဖျက်ရာတွင် အမှားဖြစ်ပါသည်။'];
-        }
-        $this->db->trans_commit();
-        return [
-            'status' => true,
-            'message' => 'Receive history ဖျက်ပြီးပါပြီ။',
-            'received_qty' => $new_qty,
-        ];
+        return $this->correctPurchaseReceipt($receipt_id, 0, true);
     }
 
     public function updatePurchaseReceipt($receipt_id, $new_qty)
     {
-        $receipt = $this->getPurchaseReceiptByID($receipt_id);
-        $new_qty = (float) $new_qty;
-        if (!$receipt || $new_qty <= 0) {
-            return ['status' => false, 'message' => 'အချက်အလက် မမှန်ပါ။'];
+        if (!is_numeric($new_qty) || !is_finite((float) $new_qty) || (float) $new_qty <= 0) {
+            return ['status' => false, 'message' => 'Invalid receipt quantity.'];
         }
-        $item = $this->db->where('purchase_id', (int) $receipt->purchase_id)
-            ->where('product_id', (int) $receipt->product_id)->get('purchase_items', 1)->row();
-        if (!$item) {
-            return ['status' => false, 'message' => 'Purchase item မတွေ့ပါ။'];
-        }
-        $difference = $new_qty - (float) $receipt->received_primary_qty;
-        $total = (float) $item->received_primary_qty + $difference;
-        if ($total < 0 || $total > (float) $item->primary_qty) {
-            return ['status' => false, 'message' => 'လက်ခံအရေအတွက်သည် မှာယူထားသောအရေအတွက်ထက် မကျော်ရပါ။'];
-        }
-
-        $this->db->trans_begin();
-        $this->db->where('id', (int) $item->id)->update('purchase_items', ['received_primary_qty' => $total]);
-        if ($difference != 0) {
-            $this->setStoreQuantity((int) $receipt->purchase_id, (int) $receipt->product_id,
-                (int) $item->store_id, $difference);
-        }
-        $this->db->where('id', (int) $receipt_id)
-            ->update('purchase_receipts', ['received_primary_qty' => $new_qty]);
-        $this->syncPurchaseReceivedStatus((int) $receipt->purchase_id);
-        if ($this->db->trans_status() === false) {
-            $this->db->trans_rollback();
-            return ['status' => false, 'message' => 'Receive history update မအောင်မြင်ပါ။'];
-        }
-        $this->db->trans_commit();
-        return [
-            'status' => true,
-            'message' => 'Receive history ပြင်ဆင်ပြီးပါပြီ။',
-            'received_qty' => $total,
-        ];
+        return $this->correctPurchaseReceipt($receipt_id, (float) $new_qty, false);
     }
 
+    private function correctPurchaseReceipt($receipt_id, $new_qty, $delete)
+    {
+        $receipt_id = (int) $receipt_id;
+        $receipt = $this->getPurchaseReceiptByID($receipt_id);
+        if (!$receipt) {
+            return ['status' => false, 'message' => 'Receive history not found.'];
+        }
+        if (!$this->db->field_exists('stock_batch_id', 'purchase_receipts')
+            || !$this->db->field_exists('purchase_receipt_id', 'stock_movements')) {
+            return ['status' => false, 'message' => 'Receipt stock-link schema upgrade is required.'];
+        }
+        $epsilon = 0.00011;
+        $this->db->trans_begin();
+        try {
+            // Same lock order as receivePurchaseItems: purchase, then item/batch.
+            $header = $this->db->query('SELECT * FROM '.$this->db->dbprefix('purchases').' WHERE id = ? FOR UPDATE',
+                [(int) $receipt->purchase_id])->row();
+            $receipt = $this->db->query('SELECT * FROM '.$this->db->dbprefix('purchase_receipts').' WHERE id = ? FOR UPDATE',
+                [$receipt_id])->row();
+            if (!$header || !$receipt || (int)$receipt->purchase_id !== (int)$header->id) {
+                throw new RuntimeException('Purchase or receipt no longer exists.');
+            }
+            $item = $this->db->query('SELECT * FROM '.$this->db->dbprefix('purchase_items').' WHERE id = ? AND purchase_id = ? FOR UPDATE',
+                [(int)$receipt->purchase_item_id, (int)$receipt->purchase_id])->row();
+            if (!$item || (int)$item->product_id !== (int)$receipt->product_id) {
+                throw new RuntimeException('The original purchase item could not be identified.');
+            }
+            $old_qty = (float)$receipt->received_primary_qty;
+            $difference = $new_qty - $old_qty;
+            $total = (float)$item->received_primary_qty + $difference;
+            if ($old_qty <= 0 || $total < -$epsilon || $total > (float)$item->primary_qty + $epsilon) {
+                throw new RuntimeException('Receipt quantity exceeds the ordered quantity.');
+            }
+            if (!$delete && abs($difference) < 0.000001) {
+                $this->db->trans_rollback();
+                return ['status'=>true, 'message'=>'Receipt quantity is unchanged.', 'received_qty'=>$total];
+            }
+            $batchTable = $this->db->dbprefix('stock_batches');
+            if (!empty($receipt->stock_batch_id)) {
+                $batches = $this->db->query('SELECT * FROM '.$batchTable.' WHERE id = ? FOR UPDATE',
+                    [(int)$receipt->stock_batch_id])->result();
+            } else {
+                // Legacy records are accepted only when there is one exact candidate.
+                // Do not guess by row order when several receipts have the same quantity.
+                $batches = $this->db->query('SELECT * FROM '.$batchTable.' WHERE purchase_id = ? AND product_id = ? AND store_id = ? AND ABS(qty_primary - ?) < 0.00011 AND COALESCE(primary_unit_id,0) = ? AND COALESCE(secondary_unit_id,0) = ? FOR UPDATE',
+                    [(int)$receipt->purchase_id,(int)$receipt->product_id,(int)$receipt->store_id,$old_qty,
+                     (int)$receipt->primary_unit_id,(int)$receipt->secondary_unit_id])->result();
+            }
+            if (count($batches) !== 1) {
+                throw new RuntimeException('This legacy receipt cannot be matched to a unique stock batch. No changes were saved.');
+            }
+            $batch = $batches[0];
+            if ((int)$batch->purchase_id !== (int)$receipt->purchase_id
+                || (int)$batch->product_id !== (int)$receipt->product_id
+                || (int)$batch->store_id !== (int)$receipt->store_id
+                || (int)$batch->primary_unit_id !== (int)$receipt->primary_unit_id
+                || (int)$batch->secondary_unit_id !== (int)$receipt->secondary_unit_id) {
+                throw new RuntimeException('Receipt and stock batch do not match.');
+            }
+            if ($this->db->where('stock_batch_id',(int)$batch->id)->where('id !=',$receipt_id)
+                ->count_all_results('purchase_receipts') > 0) {
+                throw new RuntimeException('This stock batch is linked to another receipt. No changes were saved.');
+            }
+            if ($this->db->where('batch_id',(int)$batch->id)->count_all_results('cogs_logs') > 0) {
+                throw new RuntimeException('Stock from this receipt has been used in a sale. Reverse the dependent transaction first.');
+            }
+            $movements = $this->db->query('SELECT * FROM '.$this->db->dbprefix('stock_movements').' WHERE batch_id = ? FOR UPDATE',
+                [(int)$batch->id])->result();
+            $original = [];
+            foreach ($movements as $movement) {
+                if ($movement->movement_type === 'purchase') { $original[] = $movement; }
+                elseif ($movement->movement_type !== 'adjustment' || (int)$movement->purchase_receipt_id !== $receipt_id) {
+                    throw new RuntimeException('This stock batch has transfers or other stock changes. No changes were saved.');
+                }
+            }
+            if (count($original) !== 1 || (float)$original[0]->qty_primary <= 0) {
+                throw new RuntimeException('Original receipt stock movement is unavailable.');
+            }
+            if (!empty($original[0]->purchase_receipt_id) && (int)$original[0]->purchase_receipt_id !== $receipt_id) {
+                throw new RuntimeException('Original stock movement belongs to another receipt.');
+            }
+            $factor = (float)$original[0]->qty_base / (float)$original[0]->qty_primary;
+            $secondary_ratio = (float)$receipt->received_secondary_qty / $old_qty;
+            if ($factor <= 0 || abs((float)$batch->qty_base - $old_qty*$factor) > $epsilon
+                || abs((float)$batch->qty_secondary - (float)$receipt->received_secondary_qty) > $epsilon
+                || abs((float)$batch->qty_primary - $old_qty) > $epsilon) {
+                throw new RuntimeException('Stock balance has changed since receipt. No changes were saved.');
+            }
+            // Keep the original unit conversion and landed unit cost, even if current unit settings changed.
+            $new_base = round($new_qty*$factor,4);
+            $new_secondary = round($new_qty*$secondary_ratio,2);
+            $new_delivery = round((float)$receipt->allocated_delivery*$new_qty/$old_qty,4);
+            $secondary_total = (float)$item->received_secondary_qty
+                + $new_secondary - (float)$receipt->received_secondary_qty;
+            if ($secondary_total < -$epsilon || $secondary_total > (float)$item->secondary_qty + $epsilon) {
+                throw new RuntimeException('Secondary receipt quantity exceeds the ordered quantity.');
+            }
+            $this->db->where('id',(int)$batch->id)->update('stock_batches', [
+                'qty_base'=>$new_base, 'qty_primary'=>$new_qty, 'qty_secondary'=>$new_secondary,
+                'delivery'=>$new_delivery, 'updated_at'=>date('Y-m-d H:i:s')]);
+            $this->db->insert('stock_movements', [
+                'batch_id'=>(int)$batch->id, 'product_id'=>(int)$receipt->product_id,
+                'purchase_id'=>(int)$receipt->purchase_id, 'purchase_receipt_id'=>$receipt_id,
+                'movement_type'=>'adjustment', 'from_store_id'=>$difference<0?(int)$receipt->store_id:null,
+                'to_store_id'=>$difference>0?(int)$receipt->store_id:null,
+                'qty_base'=>$new_base-(float)$batch->qty_base, 'qty_primary'=>$difference,
+                'qty_secondary'=>$new_secondary-(float)$batch->qty_secondary, 'created_at'=>date('Y-m-d H:i:s')]);
+            $this->db->where('id',(int)$item->id)->update('purchase_items', [
+                'received_primary_qty'=>max(0,$total), 'received_secondary_qty'=>max(0,$secondary_total)]);
+            if ($delete) { $this->db->where('id',$receipt_id)->delete('purchase_receipts'); }
+            else {
+                $this->db->where('id',$receipt_id)->update('purchase_receipts', [
+                    'stock_batch_id'=>(int)$batch->id, 'received_primary_qty'=>$new_qty,
+                    'received_secondary_qty'=>$new_secondary, 'allocated_delivery'=>$new_delivery]);
+            }
+            $this->syncPurchaseReceivedStatus((int)$receipt->purchase_id);
+            $latest = $this->db->where('product_id',(int)$receipt->product_id)->where('qty_base >',0)
+                ->order_by('id','DESC')->get('stock_batches',1)->row();
+            $this->db->where('id',(int)$receipt->product_id)->update('products',['cost'=>$latest?(float)$latest->cost_per_base:0]);
+            if ($this->db->trans_status() === false) { throw new RuntimeException('Receipt correction transaction failed.'); }
+            $this->db->trans_commit();
+            return ['status'=>true, 'message'=>$delete?'Receipt deleted and stock reversed.':'Receipt and stock updated.', 'received_qty'=>max(0,$total)];
+        } catch (Throwable $error) {
+            $this->db->trans_rollback();
+            return ['status'=>false, 'message'=>$error->getMessage()];
+        }
+    }
     private function syncPurchaseReceivedStatus($purchase_id)
     {
         $summary = $this->db->select('COALESCE(SUM(primary_qty), 0) AS ordered_qty, COALESCE(SUM(received_primary_qty), 0) AS received_qty', false)
@@ -2346,64 +2502,9 @@ public function getAllPurchaseItems($purchase_id)
 
     public function deletePurchaseItem($item_id)
     {
-        $item_id = (int) $item_id;
-
-        if ($item_id <= 0) {
-            return [
-                'status' => false,
-                'message' => 'Purchase item ID မမှန်ပါ။'
-            ];
-        }
-
-        $item = $this->getPurchaseItemByID($item_id);
-
-        if (!$item) {
-            return [
-                'status' => false,
-                'message' => 'Purchase item မတွေ့ပါ။'
-            ];
-        }
-
-        $this->db->trans_begin();
-
-        /* Reverse received stock, then remove all receipt history for this item. */
-        $purchase = $this->getPurchaseByID((int) $item->purchase_id);
-        $received_qty = (float) ($item->received_primary_qty ?? 0);
-        if ($purchase && $received_qty != 0) {
-            $this->setStoreQuantity(
-                (int) $item->purchase_id,
-                (int) $item->product_id,
-                (int) $purchase->store_id,
-                0 - $received_qty
-            );
-        }
-
-        if ($this->db->table_exists('purchase_receipts')) {
-            $this->db->where('purchase_item_id', $item_id)
-                ->delete('purchase_receipts');
-        }
-
-        $this->db
-            ->where('id', $item_id)
-            ->delete('purchase_items');
-
-        $this->syncPurchaseReceivedStatus((int) $item->purchase_id);
-
-        if ($this->db->trans_status() === false) {
-            $this->db->trans_rollback();
-
-            return [
-                'status' => false,
-                'message' => 'Purchase item ဖျက်ရာတွင် အမှားဖြစ်ပါသည်။'
-            ];
-        }
-
-        $this->db->trans_commit();
-
-        return [
-            'status' => true,
-            'message' => 'Purchase item ဖျက်ပြီးပါပြီ။',
-        ];
+        // A line changes invoice totals and delivery allocation. Use the complete
+        // purchase edit flow instead of deleting one row and leaving stale totals.
+        return ['status'=>false, 'message'=>'Remove items through Purchase Edit so invoice totals and delivery costs are recalculated. Reverse receipts and payments first.'];
     }
 
 }

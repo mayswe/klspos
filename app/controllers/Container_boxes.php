@@ -31,7 +31,7 @@ class Container_boxes extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->container_boxes_model->addContainerBox($data)) {
             $this->session->set_flashdata('message', lang('container_box_added'));
-            redirect('container_boxes');
+            redirect($this->mobilePageUrl('container_boxes'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['page_title'] = lang('new_container_box');
@@ -86,7 +86,7 @@ class Container_boxes extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->container_boxes_model->updateContainerBox($id, $data)) {
             $this->session->set_flashdata('message', lang('container_box_updated'));
-            redirect('container_boxes');
+            redirect($this->mobilePageUrl('container_boxes'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['container_box']  = $container_box;

@@ -1,0 +1,12 @@
+/* Loaded only by Purchase Edit in app mode. */
+.main-header, .main-sidebar, .main-footer, .control-sidebar, .content-header { display: none !important; }
+.wrapper, .content-wrapper { margin: 0 !important; padding-top: 0 !important; min-height: 100vh !important; background: #f4f7fb !important; }
+.purchase-edit-mobile { padding: 12px !important; }
+.purchase-edit-mobile .box-header { display: flex; align-items: center; gap: 12px; padding: 16px; flex-wrap: wrap; }
+.purchase-edit-mobile .box-header h4 { margin: 0; font-size: 22px; }
+.purchase-edit-mobile .box-body { padding: 16px 0; }
+.purchase-edit-mobile #poTable { min-width: 900px; }
+.purchase-edit-mobile #poTable input, .purchase-edit-mobile #poTable select { min-width: 95px; }
+.purchase-edit-mobile .btn { min-height: 44px; border-radius: 10px; }
+.purchase-edit-mobile .btn-primary { background: #147d6c; border-color: #147d6c; }
+.purchase-edit-mobile .select2-container { width: 100% !important; max-width: 100%; }

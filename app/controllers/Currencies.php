@@ -45,7 +45,7 @@ class Currencies extends MY_Controller{
 
         if ($this->form_validation->run() == true && $this->Currency_model->insert($data)) {
             $this->session->set_flashdata('message', lang('category_added'));
-            redirect('currencies');
+            redirect($this->mobilePageUrl('currencies'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['page_title'] = lang('add_exchangerate');
@@ -78,7 +78,7 @@ class Currencies extends MY_Controller{
 
         if ($this->form_validation->run() == true && $this->Currency_model->update($id, $data)) {
             $this->session->set_flashdata('message', lang('category_updated'));
-            redirect('currencies');
+            redirect($this->mobilePageUrl('currencies'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['currency']   = $this->Currency_model->get_by_id($id);
@@ -106,7 +106,7 @@ class Currencies extends MY_Controller{
 
         if ($this->Currency_model->delete($id)) {
             $this->session->set_flashdata('message', lang('category_deleted'));
-            redirect('currencies');
+            redirect($this->mobilePageUrl('currencies'));
         }
     }
 

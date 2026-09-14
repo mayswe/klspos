@@ -98,7 +98,7 @@ class Shippings extends MY_Controller
         if ($this->form_validation->run() == true && $this->shippings_model->addShipping($data, $products)) {
             $this->session->set_userdata('remove_spo', 1);
             $this->session->set_flashdata('message', lang('shipping_added'));
-            redirect('shippings');
+            redirect($this->mobilePageUrl('shippings'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['suppliers']  = $this->site->getAllSuppliers();
@@ -127,7 +127,7 @@ class Shippings extends MY_Controller
 
         if ($this->shippings_model->deleteShipping($id)) {
             $this->session->set_flashdata('message', lang('shipping_deleted'));
-            redirect('shippings');
+            redirect($this->mobilePageUrl('shippings'));
         }
     }
 
@@ -210,7 +210,7 @@ class Shippings extends MY_Controller
         if ($this->form_validation->run() == true && $this->shippings_model->updateShipping($id, $data, $products)) {
             $this->session->set_userdata('remove_spo', 1);
             $this->session->set_flashdata('message', lang('shipping_updated'));
-            redirect('shippings');
+            redirect($this->mobilePageUrl('shippings'));
         } else {
             $this->data['shipping'] = $this->shippings_model->getShippingByID($id);
             $inv_items              = $this->shippings_model->getAllShippingItems($id);

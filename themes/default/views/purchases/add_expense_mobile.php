@@ -644,7 +644,8 @@ html {
 </style>
 <?php } ?>
 
-<section class="content expense-add-erp">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content expense-add-erp kls-mobile-ui">
     <div class="erp-page">
         <div class="erp-card erp-form">
 

@@ -726,11 +726,12 @@ $product_page_labels = [
 </style>
 <?php } ?>
 
-<section class="content">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content kls-mobile-ui">
     <div class="erp-page">
         <div class="erp-card erp-form">
 
-            <div class="erp-page-header" style="display:none;">
+            <div class="erp-page-header">
                 <h4 class="erp-page-title">
                     <i class="fa fa-cube"></i>
                     <span><?= html_escape($page_title); ?></span>

@@ -1192,11 +1192,18 @@ body,
     });
 </script>
 
-<section class="content erp-page">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content erp-page kls-mobile-ui">
     <div class="row">
         <div class="col-xs-12">
             <div class="box box-primary" style="border-radius:10px; border-top:0; overflow:hidden;">
                 <div class="erp-header">
+                    <div class="erp-title-wrap">
+                        <div class="erp-title-icon"><i class="fa fa-folder"></i></div>
+                        <div><h1 class="erp-title"><?= html_escape($page_title); ?></h1>
+                            <div class="erp-subtitle"><?= lang('list'); ?></div>
+                        </div>
+                    </div>
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCategoryModal">
                         <i class="fa fa-plus"></i> <?= lang('add_category'); ?>
                     </button>
@@ -1514,3 +1521,6 @@ body,
         </div>
     </div>
 </div>
+
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-actions.css?v=1">
+<script src="<?= $assets ?>js/mobile-actions.js?v=3"></script>

@@ -48,7 +48,7 @@ class Settings extends MY_Controller
 
         if ($this->form_validation->run() == true && $cid = $this->settings_model->addPrinter($data)) {
             $this->session->set_flashdata('message', $this->lang->line('printer_added'));
-            redirect('settings/printers');
+            redirect($this->mobilePageUrl('settings/printers'));
         } else {
             if ($this->input->is_ajax_request()) {
                 echo json_encode(['status' => 'failed', 'msg' => validation_errors()]);
@@ -110,7 +110,7 @@ class Settings extends MY_Controller
 
         if ($this->form_validation->run() == true && $cid = $this->settings_model->addStore($data)) {
             $this->session->set_flashdata('message', $this->lang->line('store_added'));
-            redirect('settings/stores');
+            redirect($this->mobilePageUrl('settings/stores'));
         } else {
             if ($this->input->is_ajax_request()) {
                 echo json_encode(['status' => 'failed', 'msg' => validation_errors()]);
@@ -226,7 +226,7 @@ class Settings extends MY_Controller
 
         if ($this->settings_model->deletePrinter($id)) {
             $this->session->set_flashdata('message', lang('printer_deleted'));
-            redirect('settings/printers');
+            redirect($this->mobilePageUrl('settings/printers'));
         }
     }
 
@@ -246,7 +246,7 @@ class Settings extends MY_Controller
 
         // if ($this->settings_model->deleteStore($id)) {
         // $this->session->set_flashdata('message', lang("store_deleted"));
-        redirect('settings/stores');
+        redirect($this->mobilePageUrl('settings/stores'));
         // }
     }
 
@@ -319,7 +319,7 @@ class Settings extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->settings_model->updatePrinter($id, $data)) {
             $this->session->set_flashdata('message', $this->lang->line('printer_updated'));
-            redirect('settings/printers');
+            redirect($this->mobilePageUrl('settings/printers'));
         } else {
             $this->data['printer']    = $printer;
             $this->data['error']      = (validation_errors()) ? validation_errors() : $this->session->flashdata('error');
@@ -389,7 +389,7 @@ class Settings extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->settings_model->updateStore($id, $data)) {
             $this->session->set_flashdata('message', $this->lang->line('store_updated'));
-            redirect('settings/stores');
+            redirect($this->mobilePageUrl('settings/stores'));
         } else {
             $this->data['store']      = $store;
             $this->data['error']      = (validation_errors()) ? validation_errors() : $this->session->flashdata('error');

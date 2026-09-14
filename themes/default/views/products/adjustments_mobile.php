@@ -1015,7 +1015,8 @@ body,
     });
 </script>
 
-<section class="content erp-page">
+<link rel="stylesheet" href="<?= $assets ?>css/mobile-ui.css?v=3">
+<section class="content erp-page kls-mobile-ui">
     <div class="row">
         <div class="col-xs-12">
             <div class="box box-primary" style="border-radius:10px; border-top:0; overflow:hidden;">

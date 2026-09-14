@@ -1,0 +1,149 @@
+/* Shared mobile components. Opt in with .kls-mobile-ui; desktop is unaffected. */
+.kls-mobile-ui {
+    --mobile-primary: #0f766e;
+    --mobile-text: #172b3a;
+    --mobile-muted: #64748b;
+    --mobile-border: #dce5ec;
+    --mobile-surface: #fff;
+    --mobile-radius: 14px;
+    background: #f3f6f9;
+    color: var(--mobile-text);
+    padding: 16px !important;
+    line-height: 1.6;
+}
+.kls-mobile-ui .erp-page { max-width: 1100px; margin: 0 auto; }
+.kls-mobile-ui .kls-mobile-heading { margin: 4px 0 20px; }
+.kls-mobile-ui .kls-mobile-eyebrow { color: var(--mobile-primary); font-size: 13px; font-weight: 700; }
+.kls-mobile-ui .kls-mobile-heading h1 { margin: 6px 0; font-size: 24px; font-weight: 700; line-height: 1.5; }
+.kls-mobile-ui .kls-mobile-heading p { margin: 0; color: var(--mobile-muted); font-size: 14px; }
+.kls-mobile-ui .erp-card { border: 1px solid var(--mobile-border); border-radius: var(--mobile-radius); box-shadow: 0 3px 12px rgba(23,43,58,.04); }
+.kls-mobile-ui .erp-body { padding: 16px !important; }
+.kls-mobile-ui .product-search-help { background: #eff8f6; border: 1px solid #cee6df; border-radius: 10px; padding: 14px; align-items: flex-start; }
+.kls-mobile-ui .product-search-help strong,
+.kls-mobile-ui .product-search-help > i { color: var(--mobile-primary); }
+.kls-mobile-ui .product-search-help span { font-size: 14px; color: var(--mobile-muted); }
+.kls-mobile-ui .erp-column-filters { grid-template-columns: repeat(2,minmax(0,1fr)); padding: 0; border: 0; background: transparent; gap: 12px; margin: 16px 0; }
+.kls-mobile-ui .erp-column-filter { min-width: 0; }
+.kls-mobile-ui .erp-column-filter input,
+.kls-mobile-ui .form-control { min-height: 44px; height: auto; font-size: 16px; border: 1px solid var(--mobile-border); border-radius: 10px; }
+.kls-mobile-ui input:focus,
+.kls-mobile-ui a:focus-visible,
+.kls-mobile-ui button:focus-visible,
+.kls-mobile-ui [tabindex]:focus-visible { outline: 2px solid var(--mobile-primary); outline-offset: 2px; }
+.kls-mobile-ui .table-responsive { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+.kls-mobile-ui .dataTables_info { white-space: normal; color: var(--mobile-muted); line-height: 1.6; }
+.kls-mobile-ui .pagination { display: flex; flex-wrap: wrap; gap: 4px; }
+.kls-mobile-ui .pagination > li > a,
+.kls-mobile-ui .pagination > li > span { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+.kls-mobile-ui .pagination > .active > a { background: var(--mobile-primary); border-color: var(--mobile-primary); }
+.kls-mobile-ui .erp-action-legend { margin-top: 16px; box-shadow: none; border-color: var(--mobile-border); }
+@media (min-width: 768px) {
+    .kls-mobile-ui .erp-column-filters { grid-template-columns: repeat(4,minmax(0,1fr)); }
+}
+@media (max-width: 380px) {
+    .kls-mobile-ui { padding: 10px !important; }
+    .kls-mobile-ui .erp-body { padding: 12px !important; }
+    .kls-mobile-ui .erp-column-filters { grid-template-columns: 1fr; }
+}
+/* Shared list-page shell: Categories, Customers and Suppliers. */
+.kls-mobile-ui.erp-page { max-width: 1100px; margin: 0 auto; }
+.kls-mobile-ui.erp-page .box { border: 1px solid var(--mobile-border); border-radius: var(--mobile-radius); box-shadow: 0 3px 12px rgba(23,43,58,.04); overflow: hidden; }
+.kls-mobile-ui.erp-page .erp-header { display: flex; flex-wrap: wrap; gap: 16px; padding: 20px 16px !important; background: var(--mobile-surface); border-bottom: 1px solid var(--mobile-border); }
+.kls-mobile-ui.erp-page .erp-title { font-size: 24px !important; line-height: 1.5; color: var(--mobile-text); }
+.kls-mobile-ui.erp-page .erp-title-icon { border-radius: 12px; background: #eff8f6; color: var(--mobile-primary); }
+.kls-mobile-ui.erp-page .erp-subtitle { color: var(--mobile-muted); font-size: 14px; }
+.kls-mobile-ui.erp-page .erp-stat-grid { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 12px; margin: 0 0 16px; }
+.kls-mobile-ui.erp-page .erp-stat-grid::before,
+.kls-mobile-ui.erp-page .erp-stat-grid::after { display: none; }
+.kls-mobile-ui.erp-page .erp-stat-item { width: auto !important; min-width: 0; padding: 0; }
+.kls-mobile-ui.erp-page .erp-stat-card { border: 1px solid var(--mobile-border); border-radius: 12px; box-shadow: none; background: var(--mobile-surface); padding: 14px !important; }
+.kls-mobile-ui.erp-page .erp-stat-value { color: var(--mobile-primary); }
+.kls-mobile-ui.erp-page .erp-table-card { border: 1px solid var(--mobile-border); border-radius: 12px; box-shadow: none; }
+.kls-mobile-ui.erp-page .erp-table-toolbar { display: flex; flex-wrap: wrap; gap: 12px; padding: 14px; background: var(--mobile-surface); }
+.kls-mobile-ui.erp-page #search_table { width: 100%; max-width: 100%; height: 44px !important; }
+.kls-mobile-ui.erp-page .btn { min-height: 44px; border-radius: 10px; white-space: normal; }
+.kls-mobile-ui.erp-page .btn-primary { background: var(--mobile-primary); border-color: var(--mobile-primary); }
+.kls-mobile-ui.erp-page .erp-table-title { color: var(--mobile-text); line-height: 1.5; }
+@media (min-width: 768px) {
+    .kls-mobile-ui.erp-page .erp-stat-grid { grid-template-columns: repeat(4,minmax(0,1fr)) !important; }
+}
+/* Forms, reports and stock flows share these opt-in components. */
+.kls-mobile-ui .box,
+.kls-mobile-ui .erp-table-card,
+.kls-mobile-ui .closing-table-card,
+.kls-mobile-ui .receive-table-card,
+.kls-mobile-ui .os-card {
+    border: 1px solid var(--mobile-border);
+    border-radius: var(--mobile-radius);
+    background: var(--mobile-surface);
+    box-shadow: 0 3px 12px rgba(23,43,58,.04);
+}
+.kls-mobile-ui .erp-page-header,
+.kls-mobile-ui .os-header {
+    padding: 16px !important;
+    background: var(--mobile-surface);
+    border-bottom: 1px solid var(--mobile-border);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.kls-mobile-ui .erp-page-title,
+.kls-mobile-ui .os-title { font-size: 22px !important; line-height: 1.6; color: var(--mobile-text); margin: 0; }
+.kls-mobile-ui .erp-header-actions { flex-wrap: wrap; gap: 8px; }
+.kls-mobile-ui .btn,
+.kls-mobile-ui .erp-listing-btn { min-height: 44px; border-radius: 10px; white-space: normal; }
+.kls-mobile-ui .btn-primary { background-color: var(--mobile-primary); border-color: var(--mobile-primary); }
+.kls-mobile-ui .btn-primary:hover,
+.kls-mobile-ui .btn-primary:focus { background-color: #115e59; border-color: #115e59; }
+.kls-mobile-ui .form-group { margin-bottom: 18px; }
+.kls-mobile-ui label { line-height: 1.7; }
+.kls-mobile-ui textarea.form-control { min-height: 100px; resize: vertical; }
+.kls-mobile-ui .select2-container .select2-choice { min-height: 44px; line-height: 42px; border-color: var(--mobile-border); border-radius: 10px; }
+.kls-mobile-ui .select2-container--default .select2-selection--single { min-height: 44px; border-color: var(--mobile-border); border-radius: 10px; }
+.kls-mobile-ui .select2-selection__rendered { line-height: 42px !important; }
+.kls-mobile-ui .select2-selection__arrow { height: 42px !important; }
+.kls-mobile-ui .erp-filter-panel,
+.kls-mobile-ui .closing-filter-card { border: 1px solid var(--mobile-border); border-radius: 12px; box-shadow: none; }
+.kls-mobile-ui .nav-tabs { display: flex; overflow-x: auto; flex-wrap: nowrap; }
+.kls-mobile-ui .nav-tabs > li { flex: 0 0 auto; }
+.kls-mobile-ui .nav-tabs > li > a { min-height: 44px; }
+.kls-mobile-ui .nav-tabs > li.active > a { color: var(--mobile-primary); }
+@media (max-width: 480px) {
+    .kls-mobile-ui .erp-page-title,
+    .kls-mobile-ui .os-title { font-size: 20px !important; }
+    .kls-mobile-ui .erp-header-actions { width: 100%; }
+    .kls-mobile-ui .erp-header-actions > .btn,
+    .kls-mobile-ui .erp-listing-btn { width: 100%; justify-content: center; }
+    .kls-mobile-ui .dataTables_wrapper > .row { margin-left: 0; margin-right: 0; }
+}
+/* One summary-card treatment across transaction and report pages. */
+.kls-mobile-ui .erp-summary-card,
+.kls-mobile-ui .erp-stat-card {
+    background: var(--mobile-surface) !important;
+    color: var(--mobile-text) !important;
+    border: 1px solid var(--mobile-border) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    padding: 14px !important;
+}
+.kls-mobile-ui .erp-summary-card::after,
+.kls-mobile-ui .erp-stat-card::after { display: none; }
+.kls-mobile-ui .erp-summary-card .erp-summary-label,
+.kls-mobile-ui .erp-stat-card .erp-stat-label { color: var(--mobile-muted) !important; font-size: 13px; }
+.kls-mobile-ui .erp-summary-card .erp-summary-value,
+.kls-mobile-ui .erp-stat-card .erp-stat-value { color: var(--mobile-primary) !important; font-size: 20px; overflow-wrap: anywhere; }
+.kls-mobile-ui .erp-title-text h4 { color: var(--mobile-text); font-size: 22px !important; line-height: 1.6; }
+.kls-mobile-ui .erp-title-text small { color: var(--mobile-muted); }
+/* Receive form: keep the complete date/time visible on phones. */
+.kls-mobile-ui.receive-page .receive-page-card { border: 1px solid var(--mobile-border); border-radius: var(--mobile-radius); box-shadow: none; }
+.kls-mobile-ui.receive-page .receive-page-header { padding: 16px; gap: 12px; flex-wrap: wrap; }
+.kls-mobile-ui.receive-page .receive-page-title { color: var(--mobile-text); line-height: 1.6; }
+.kls-mobile-ui.receive-page .receive-back-btn { min-height: 44px; display: inline-flex; align-items: center; }
+.kls-mobile-ui.receive-page .receive-page-body { padding: 16px; }
+.kls-mobile-ui.receive-page .summary-card { background: var(--mobile-surface); border: 1px solid var(--mobile-border); border-radius: 12px; }
+.kls-mobile-ui.receive-page .summary-value { color: var(--mobile-primary); }
+@media (max-width: 480px) {
+    .kls-mobile-ui.receive-page .receive-form-row { grid-template-columns: minmax(0,1fr) !important; gap: 12px !important; }
+    .kls-mobile-ui.receive-page .receive-summary { grid-template-columns: minmax(0,1fr) !important; gap: 8px !important; }
+    .kls-mobile-ui.receive-page .summary-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px !important; }
+    .kls-mobile-ui.receive-page input[type="datetime-local"] { width: 100%; min-width: 0; }
+}

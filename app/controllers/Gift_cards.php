@@ -34,7 +34,7 @@ class Gift_cards extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->gift_cards_model->addGiftCard($data)) {
             $this->session->set_flashdata('message', lang('gift_card_added'));
-            redirect('gift_cards');
+            redirect($this->mobilePageUrl('gift_cards'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['customers']  = $this->site->getAllCustomers();
@@ -91,7 +91,7 @@ class Gift_cards extends MY_Controller
 
         if ($this->form_validation->run() == true && $this->gift_cards_model->updateGiftCard($id, $data)) {
             $this->session->set_flashdata('message', lang('gift_card_updated'));
-            redirect('gift_cards');
+            redirect($this->mobilePageUrl('gift_cards'));
         } else {
             $this->data['error']      = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
             $this->data['gift_card']  = $gift_card;
