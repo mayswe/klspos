@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 </div>
-<script src="<?= $assets ?>js/mobile-actions.js?v=3"></script>
+<script src="<?= $assets ?>js/mobile-actions.js?v=4"></script>
 <script>
 (function () {
     var root = document.querySelector('.mobile-shared-page');
@@ -32,7 +32,9 @@
     $(function () {
         // Keep filtering and pagination reachable without horizontal table scrolling.
         root.querySelectorAll('table').forEach(function (table) {
-            if (!table.closest('.table-responsive')) $(table).wrap('<div class="table-responsive"></div>');
+            if (!table.closest('.table-responsive, .erp-table-wrap, .dataTables_wrapper')) {
+                $(table).wrap('<div class="table-responsive"></div>');
+            }
         });
         var search = root.querySelector('#search_table');
         if (search) {

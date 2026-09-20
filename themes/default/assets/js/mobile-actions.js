@@ -20,6 +20,7 @@
     }
     function render(table) {
         if (!table) return;
+        if (table.classList.contains('skip-mobile-actions')) return;
         table.querySelectorAll('tbody .dropdown-menu, tbody .erp-actions, tbody .erp-action-buttons').forEach(function (menu) {
             var cell = menu.closest('td');
             if (!cell || cell.querySelector('.erp-action-btn')) return;
@@ -54,6 +55,7 @@
         });
         var current = Array.from(table.querySelectorAll('.erp-action-btn'));
         if (!current.length) return;
+        if (root.classList.contains('mobile-wide-page')) return;
         var host = table.closest('.box-body') || table.parentElement;
         var legend = host.querySelector('.mobile-generated-legend');
         if (!legend) {
